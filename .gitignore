@@ -39,3 +39,6 @@ Thumbs.db
 .ruff_cache/
 .mypy_cache/
 htmlcov/
+# Database backups
+infra/backups/
+*.dump
