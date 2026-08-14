@@ -5,8 +5,8 @@ from datetime import UTC, datetime, timedelta
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.overlays.store import MemoryOverlayStore, OverlayPoint
 from app.overlays.registry import get_overlay_store
+from app.overlays.store import MemoryOverlayStore, OverlayPoint
 
 client = TestClient(app)
 
@@ -69,10 +69,10 @@ def test_lighting_endpoint_exposes_working_state():
     assert resp.status_code == 200
     lighting = resp.json()
     assert len(lighting) == 3
-    by_status = {l["status_label"] for l in lighting}
+    by_status = {item["status_label"] for item in lighting}
     assert "Streetlight reported not working" in by_status
     assert "Lighting evidence available" in by_status
-    assert all(l["lat"] == 28.63 for l in lighting)
+    assert all(item["lat"] == 28.63 for item in lighting)
 
 
 def test_bbox_filters_points():
@@ -83,7 +83,8 @@ def test_bbox_filters_points():
         ]
     )
     resp = client.get(
-        "/api/incidents", params={"min_lon": 77.0, "min_lat": 28.3, "max_lon": 77.3, "max_lat": 28.7}
+        "/api/incidents",
+        params={"min_lon": 77.0, "min_lat": 28.3, "max_lon": 77.3, "max_lat": 28.7},
     )
     assert resp.status_code == 200
     assert len(resp.json()) == 1
@@ -116,6 +117,32 @@ def test_heatmap_returns_zones_within_bbox():
     zones = resp.json()
     assert len(zones) >= 1
     assert 0 <= zones[0]["level"] <= 1
+
+
+def test_areas_endpoint_returns_known_area_summaries():
+    _override_store(
+        [
+            _point("harassment", lat=28.6315, lon=77.2167, segment_id=1),
+            _point("harassment", lat=28.6129, lon=77.2295, segment_id=2),
+        ]
+    )
+    resp = client.get("/api/safety/areas")
+    assert resp.status_code == 200
+    areas = resp.json()
+    assert isinstance(areas, list)
+    assert len(areas) >= 1
+    names = {a["area_name"] for a in areas}
+    assert "Connaught Place" in names
+    assert all("score" in a and "recent_incidents" in a for a in areas)
+
+
+def test_incidents_include_road_hazard_category():
+    _override_store([_point("road_hazard", lat=28.63, lon=77.22, segment_id=1)])
+    resp = client.get("/api/incidents")
+    assert resp.status_code == 200
+    incidents = resp.json()
+    assert len(incidents) == 1
+    assert incidents[0]["category"] == "road_hazard"
 
 
 def test_route_request_accepts_hour_ist_override():

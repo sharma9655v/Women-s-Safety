@@ -14,12 +14,14 @@ import { SkeletonCard } from "@/app/components/ui/Skeleton";
 import {
   fetchAreaSafety,
   fetchFacilities,
+  fetchHeatmapZones,
   fetchIncidents,
   fetchLighting,
   requestRoutes,
 } from "@/lib/api";
 import type {
   Facility,
+  HeatZone,
   Incident,
   LightingObservation,
   RouteCandidate,
@@ -88,6 +90,7 @@ export default function LivePage() {
     [],
   );
   const [facilities, setFacilities] = useState<Facility[]>([]);
+  const [heatZones, setHeatZones] = useState<HeatZone[]>([]);
   const apiRef = useRef<RouteMapApi | null>(null);
 
   useEffect(() => {
@@ -123,20 +126,34 @@ export default function LivePage() {
       .catch(() => {
         if (!cancelled) setFacilities([]);
       });
+    fetchHeatmapZones()
+      .then((data) => {
+        if (!cancelled) setHeatZones(data.zones);
+      })
+      .catch(() => {
+        if (!cancelled) setHeatZones([]);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
   const findRoutes = useCallback(
-    async (origin: string, destination: string, mode: string, hourIst?: number) => {
+    async (
+      origin: string,
+      destination: string,
+      mode: string,
+      hourIst?: number,
+      originCoords?: { lat: number; lon: number },
+      destCoords?: { lat: number; lon: number },
+    ) => {
       setLoading(true);
       setError(null);
       setPlanned({ origin, destination });
       try {
         const plannedRoutes = await requestRoutes({
-          origin: coordsFor(origin),
-          destination: coordsFor(destination),
+          origin: originCoords ?? coordsFor(origin),
+          destination: destCoords ?? coordsFor(destination),
           mode: MODE_MAP[mode] ?? "walking",
           safety_preference: "safety",
           hour_ist: hourIst,
@@ -183,6 +200,7 @@ export default function LivePage() {
           incidents={incidents}
           lighting={lighting}
           facilities={facilities}
+          heatZones={heatZones}
           selectedRouteId={selectedId}
           onRouteSelect={selectRoute}
           onRouteHover={(id) => setHoveredId(id)}

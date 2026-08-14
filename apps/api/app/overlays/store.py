@@ -17,7 +17,7 @@ BBox = tuple[float, float, float, float]
 
 DEMO_SOURCE = "demo_seed"
 
-INCIDENT_OBSERVATION_TYPES = ("harassment", "suspicious_activity")
+INCIDENT_OBSERVATION_TYPES = ("harassment", "suspicious_activity", "road_hazard")
 
 _SEVERITY_BY_TYPE = {
     "harassment": "high",
@@ -247,6 +247,14 @@ class PostgresOverlayStore(OverlayStore):
     def alerts(self, limit: int = 20) -> list[IncidentMarker]:
         return self.incidents(DEFAULT_BBOX, limit)
 
+    def all_areas(self) -> list[AreaSafety]:
+        results: list[AreaSafety] = []
+        for name in AREA_CENTERS:
+            area = self.area_safety(name)
+            if area is not None:
+                results.append(area)
+        return results
+
 
 def _value_bool(value_json: object) -> bool | None:
     if not isinstance(value_json, dict):
@@ -304,6 +312,14 @@ class MemoryOverlayStore(OverlayStore):
 
     def alerts(self, limit: int = 20) -> list[IncidentMarker]:
         return self.incidents(DEFAULT_BBOX, limit)
+
+    def all_areas(self) -> list[AreaSafety]:
+        results: list[AreaSafety] = []
+        for name in AREA_CENTERS:
+            area = self.area_safety(name)
+            if area is not None:
+                results.append(area)
+        return results
 
 
 AREA_CENTERS: dict[str, tuple[float, float]] = {

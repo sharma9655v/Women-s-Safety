@@ -69,3 +69,10 @@ def get_heatmap(
     bbox: Annotated[tuple[float, float, float, float], Depends(_bbox)],
 ):
     return store.heatmap(bbox)
+
+
+@router.get("/safety/areas")
+def get_areas(
+    store: Annotated[OverlayStore, Depends(get_overlay_store)],
+):
+    return store.all_areas()

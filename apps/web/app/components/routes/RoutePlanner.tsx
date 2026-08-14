@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Clock, MapPin, Navigation } from "lucide-react";
+import { AlertCircle, Clock, Crosshair, Loader2, MapPin, Mic, Navigation, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Card } from "@/app/components/ui/Card";
@@ -19,12 +19,48 @@ export const PLACE_SUGGESTIONS = [
   { label: "Rajouri Garden", lat: 28.6481, lon: 77.1212 },
 ];
 
+interface Coords {
+  lat: number;
+  lon: number;
+}
+
+interface SpeechRecognitionEvent {
+  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+}
+
+interface SpeechRecognitionLike {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onresult: ((e: SpeechRecognitionEvent) => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+function speechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
 export function RoutePlanner({
   onFindRoutes,
   loading,
   error,
 }: {
-  onFindRoutes: (origin: string, destination: string, mode: string, hourIst?: number) => void;
+  onFindRoutes: (
+    origin: string,
+    destination: string,
+    mode: string,
+    hourIst?: number,
+    originCoords?: Coords,
+    destCoords?: Coords,
+  ) => void;
   loading: boolean;
   error: string | null;
 }) {
@@ -32,13 +68,88 @@ export function RoutePlanner({
   const [destination, setDestination] = useState("");
   const [mode, setMode] = useState("walking");
   const [simulateNight, setSimulateNight] = useState(false);
+  const [originCoords, setOriginCoords] = useState<Coords | null>(null);
+  const [destCoords, setDestCoords] = useState<Coords | null>(null);
+  const [locating, setLocating] = useState(false);
+  const [listenLang, setListenLang] = useState<"hi-IN" | "en-IN">("hi-IN");
+  const [listening, setListening] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const canSearch = origin.trim().length >= 2 && destination.trim().length >= 2;
 
   const submit = () => {
     if (canSearch && !loading) {
-      onFindRoutes(origin, destination, mode, simulateNight ? 22 : undefined);
+      onFindRoutes(
+        origin,
+        destination,
+        mode,
+        simulateNight ? 22 : undefined,
+        originCoords ?? undefined,
+        destCoords ?? undefined,
+      );
     }
+  };
+
+  const useMyLocation = () => {
+    if (!("geolocation" in navigator)) {
+      setVoiceError("Location sharing is not supported by this browser.");
+      return;
+    }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const c = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+        setOrigin(`${c.lat.toFixed(4)}, ${c.lon.toFixed(4)}`);
+        setOriginCoords(c);
+        setLocating(false);
+      },
+      () => {
+        setLocating(false);
+        setVoiceError("Could not determine your location. Type it instead.");
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  };
+
+  const listen = (target: "origin" | "destination") => {
+    const Ctor = speechRecognitionCtor();
+    if (!Ctor) {
+      setVoiceError("Voice input needs Chrome or Edge.");
+      return;
+    }
+    setVoiceError(null);
+    const rec = new Ctor();
+    rec.lang = listenLang;
+    rec.interimResults = false;
+    rec.maxAlternatives = 1;
+    rec.onresult = (e) => {
+      const transcript = e.results[0]?.[0]?.transcript?.trim();
+      if (transcript) {
+        if (target === "origin") {
+          setOrigin(transcript);
+          setOriginCoords(null);
+        } else {
+          setDestination(transcript);
+          setDestCoords(null);
+        }
+      }
+    };
+    rec.onerror = (e) => {
+      setListening(false);
+      setVoiceError(
+        e.error === "not-allowed"
+          ? "Microphone permission was denied."
+          : "Voice input failed. Try again.",
+      );
+    };
+    rec.onend = () => setListening(false);
+    setListening(true);
+    rec.start();
+  };
+
+  const clearOrigin = () => {
+    setOrigin("");
+    setOriginCoords(null);
   };
 
   return (
@@ -57,17 +168,46 @@ export function RoutePlanner({
           <input
             type="text"
             value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
+            onChange={(e) => {
+              setOrigin(e.target.value);
+              setOriginCoords(null);
+            }}
             placeholder="Starting point"
             aria-label="Starting point"
             list="origin-suggestions"
-            className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:outline-none"
+            className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-20 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:outline-none"
           />
           <datalist id="origin-suggestions">
             {PLACE_SUGGESTIONS.map((p) => (
               <option key={p.label} value={p.label} />
             ))}
           </datalist>
+          <div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5">
+            {origin ? (
+              <button
+                type="button"
+                onClick={clearOrigin}
+                aria-label="Clear starting point"
+                className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+              >
+                <X className="size-3.5" aria-hidden />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={useMyLocation}
+              disabled={locating}
+              aria-label="Use my current location"
+              title="Use my current location"
+              className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+            >
+              {locating ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <Crosshair className="size-3.5" aria-hidden />
+              )}
+            </button>
+          </div>
         </div>
 
         <div className="relative">
@@ -78,19 +218,54 @@ export function RoutePlanner({
           <input
             type="text"
             value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            placeholder="Destination"
+            onChange={(e) => {
+              setDestination(e.target.value);
+              setDestCoords(null);
+            }}
+            placeholder="Destination — say it or type it"
             aria-label="Destination"
             list="dest-suggestions"
-            className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-3 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:outline-none"
+            className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-20 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:outline-none"
           />
           <datalist id="dest-suggestions">
             {PLACE_SUGGESTIONS.map((p) => (
               <option key={p.label} value={p.label} />
             ))}
           </datalist>
+          <div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center gap-0.5">
+            <select
+              value={listenLang}
+              onChange={(e) => setListenLang(e.target.value as "hi-IN" | "en-IN")}
+              aria-label="Voice input language"
+              className="h-7 cursor-pointer rounded-lg border border-border bg-surface px-1 text-[10px] text-text-muted focus:outline-none"
+            >
+              <option value="hi-IN">हिंदी</option>
+              <option value="en-IN">English</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => listen("destination")}
+              disabled={listening}
+              aria-label="Speak destination"
+              title="Speak destination"
+              className={`flex size-7 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${
+                listening
+                  ? "bg-emergency/15 text-emergency animate-ring-pulse"
+                  : "text-primary hover:bg-primary/10"
+              }`}
+            >
+              <Mic className="size-3.5" aria-hidden />
+            </button>
+          </div>
         </div>
       </div>
+
+      {voiceError ? (
+        <div className="flex items-start gap-2 rounded-xl border border-warning/20 bg-warning/5 p-2.5 text-xs text-warning">
+          <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          {voiceError}
+        </div>
+      ) : null}
 
       <TransportSelector value={mode} onChange={setMode} />
 

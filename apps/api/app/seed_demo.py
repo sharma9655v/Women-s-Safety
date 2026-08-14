@@ -47,6 +47,7 @@ HOTSPOTS = [
 INCIDENT_PLAN = [
     ("harassment", {"incident": True}, 3, 4, 3),
     ("suspicious_activity", {"incident": True}, 2, 3, 2),
+    ("road_hazard", {"incident": True, "hazard": True}, 1, 2, 1),
 ]
 
 LIGHTING_PLAN = [
@@ -166,6 +167,13 @@ def main() -> int:
                     for seg in rng.sample(segments, sample_size):
                         age_days = rng.choice([FRESH_DAYS, AGING_DAYS, STALE_DAYS])
                         observed_at = now - timedelta(days=age_days)
+                        roll = rng.random()
+                        if roll < 0.12:
+                            state = "VERIFIED"
+                        elif roll < 0.16:
+                            state = "CONFLICTING"
+                        else:
+                            state = "REPORTED"
                         obs_rows.append(
                             _build_observation(
                                 seg["segment_id"],
@@ -173,7 +181,7 @@ def main() -> int:
                                 obs_type,
                                 value,
                                 observed_at,
-                                "REPORTED",
+                                state,
                             )
                         )
                 for row in obs_rows:

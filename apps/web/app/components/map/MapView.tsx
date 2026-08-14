@@ -21,7 +21,7 @@ const DEFAULT_FILTERS: MapFilters = {
   incidents: true,
   lighting: true,
   facilities: true,
-  heatmap: false,
+  heatmap: true,
   crowd: false,
 };
 
