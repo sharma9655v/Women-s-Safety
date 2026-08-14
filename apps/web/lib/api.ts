@@ -309,6 +309,14 @@ export async function fetchAreaSafety(): Promise<AreaSafety> {
   return getJson<AreaSafety>("/api/safety/area?name=connaught-place");
 }
 
+export async function fetchAreaComparisons(): Promise<AreaSafety[]> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 300));
+    return [MOCK_AREA_SAFETY];
+  }
+  return getJson<AreaSafety[]>("/api/safety/areas");
+}
+
 export async function fetchHeatmapZones() {
   if (USE_MOCK) {
     await new Promise((r) => setTimeout(r, 300));

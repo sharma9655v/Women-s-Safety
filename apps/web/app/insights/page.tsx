@@ -9,7 +9,12 @@ import { SafetyScoreCard } from "@/app/components/safety/SafetyScoreCard";
 import { ScoreTrendCard } from "@/app/components/safety/ScoreTrendCard";
 import { Card, CardHeader } from "@/app/components/ui/Card";
 import { SkeletonCard } from "@/app/components/ui/Skeleton";
-import { fetchAreaSafety, fetchHeatmapZones, fetchIncidents } from "@/lib/api";
+import {
+  fetchAreaComparisons,
+  fetchAreaSafety,
+  fetchHeatmapZones,
+  fetchIncidents,
+} from "@/lib/api";
 import type { AreaSafety, Incident, SafetyScore } from "@/lib/types";
 
 const SKELETON_SLOTS = [0, 1, 2, 3, 4, 5];
@@ -47,6 +52,7 @@ export default function InsightsPage() {
   const [score, setScore] = useState<SafetyScore | null>(null);
   const [zones, setZones] = useState<HeatZone[]>([]);
   const [incidents, setIncidents] = useState<Incident[]>([]);
+  const [areas, setAreas] = useState<AreaSafety[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,6 +75,20 @@ export default function InsightsPage() {
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchAreaComparisons()
+      .then((a) => {
+        if (!cancelled) setAreas(a);
+      })
+      .catch(() => {
+        if (!cancelled) setAreas([]);
       });
     return () => {
       cancelled = true;
@@ -210,6 +230,57 @@ export default function InsightsPage() {
         <div className="h-96 lg:h-80">
           <LiveAlertsList alerts={incidents} title="Recent Incident Reports" />
         </div>
+
+        {areas.length > 0 ? (
+          <Card>
+            <CardHeader
+              title="Area comparison"
+              subtitle="Estimated safety across monitored areas — based on available evidence"
+            />
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border text-left text-xs text-text-muted">
+                    <th className="px-3 py-2 font-medium">Area</th>
+                    <th className="px-3 py-2 font-medium">Score</th>
+                    <th className="px-3 py-2 font-medium">Incidents (7d)</th>
+                    <th className="px-3 py-2 font-medium">Lighting</th>
+                    <th className="px-3 py-2 font-medium">Confidence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {areas
+                    .slice()
+                    .sort((a, b) => (a.score.value ?? 0) - (b.score.value ?? 0))
+                    .map((a) => (
+                      <tr key={a.area_name} className="border-b border-border/50 last:border-0">
+                        <td className="px-3 py-2 font-medium text-foreground">{a.area_name}</td>
+                        <td className="px-3 py-2">
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                              a.score.band === "low"
+                                ? "bg-emergency/12 text-emergency"
+                                : a.score.band === "moderate"
+                                  ? "bg-warning/12 text-warning"
+                                  : "bg-success/12 text-success"
+                            }`}
+                          >
+                            {a.score.value ?? 0}/100
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-text-secondary">{a.recent_incidents}</td>
+                        <td className="px-3 py-2 text-text-secondary">{a.lighting_summary}</td>
+                        <td className="px-3 py-2 text-text-muted">{a.score.confidence}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 px-3 pb-1 text-xs text-text-muted">
+              Illustrative demo data — estimates are not guarantees.
+            </p>
+          </Card>
+        ) : null}
       </div>
     </div>
   );

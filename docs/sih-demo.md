@@ -6,10 +6,12 @@ Every screen is reachable from `http://localhost:3000` on a laptop; the phone
 
 ## Real numbers you can quote (no invented stats)
 
-- 300 demo evidence observations seeded across 10 Delhi hotspots (harassment,
-  suspicious activity, streetlight failures, poor lighting), labeled `demo_seed`
-  — the UI shows a "Demo data" badge whenever they appear.
-- 87 API tests passing; 24/24 UI E2E checks, 8/8 SOS/edge checks, theme checks.
+- 340 demo evidence observations seeded across 10 Delhi hotspots (harassment,
+  suspicious activity, road hazards, streetlight failures, poor lighting), with
+  verified and conflicting states, labeled `demo_seed` — the UI shows a
+  "Demo data" badge whenever they appear.
+- 89 API tests passing; 26/24 UI E2E checks (26/26), 8/8 SOS/edge checks,
+  theme checks.
 - Day → Night toggle changes real risk estimates: sample Connaught Place →
   India Gate walk risk 2.7% (day) → 5.4% (night) — the safer route changes.
 - Entire stack runs in Docker; API degrades to the in-memory evidence snapshot
@@ -26,10 +28,13 @@ Every screen is reachable from `http://localhost:3000` on a laptop; the phone
 
 ### 2. Plan a route — day (1m30s)
 - Starting point: Connaught Place → Destination: Lajpat Nagar (or India Gate).
+- Optional wow: tap the crosshair in "Starting point" to use live geolocation;
+  or tap the mic and *speak the destination in Hindi* — say "इंडिया गेट".
 - Transport: walking. Click **Find Safe Route**.
 - 3 route cards appear (Safety Priority / Balanced / Time Priority) with scores,
   confidence, uncertainty, and the disclaimer *"not a safety guarantee"*.
 - Click **Compare** → drawer shows route trade-offs. Pick the safety route.
+- Note the risk heatmap layer over the map — toggle it with the "Heatmap" chip.
 
 ### 3. The night toggle — the money shot (1m30s)
 - In the planner, **Demo: simulate time → Night**, replan.
@@ -39,7 +44,8 @@ Every screen is reachable from `http://localhost:3000` on a laptop; the phone
 
 ### 4. Insights (1m)
 - /insights: area safety 0–100, 7-day incidents, lighting evidence, hourly
-  time-of-day curve, area risk map (heatmap). All live from `/api/safety/*`.
+  time-of-day curve, area risk map (heatmap), and a new **area comparison
+  table** across all 10 monitored areas. All live from `/api/safety/*`.
 
 ### 5. SOS + location share (1m)
 - Open **Emergency SOS** → contacts (181 / 112 / 102).
@@ -53,7 +59,13 @@ Every screen is reachable from `http://localhost:3000` on a laptop; the phone
 - /report: describe an incident, pick type, submit. Backend validates, dedupes,
   and the observation flows into the evidence pipeline (model stays gated).
 
-### 8. Close (30s)
+### 8. Civic Operations (1m)
+- /civic: the same evidence becomes a municipal worklist — streetlight
+  failures with "open in maps", incident categories for patrol planning, and
+  priority areas ranked by estimated safety. This is the government/civic-body
+  story judges ask about.
+
+### 9. Close (30s)
 - One-line: *"The system never promises safety — it surfaces evidence,
   uncertainty, and routes. Civic bodies can action the lighting/incident data."*
 
@@ -64,8 +76,8 @@ Every screen is reachable from `http://localhost:3000` on a laptop; the phone
 | Problem relevance | Night-travel safety, last-mile risk, lighting + incident evidence |
 | Innovation | Evidence engine (weighted, uncertainty-aware) instead of "AI vibe scores"; demo-labeled data; no fabricated accuracy |
 | Tech depth | FastAPI + PostGIS routing, OSRM, offline snapshot fallback, 87 tests |
-| Usability | 2-field planner, mobile-first, SOS + share-trip, accessibility labels |
-| Impact | Streetlight failure data is actionable by municipalities; helpline numbers one-tap |
+| Usability | 2-field planner, voice input (हिंदी/English), geolocation, mobile-first, SOS + share-trip, accessibility labels |
+| Impact | Streetlight failure data is actionable by municipalities (Civic Ops page); helpline numbers one-tap |
 | Scalability | Plug other cities: replace OSM extract + evidence snapshot |
 
 ## Honesty guardrails (do not break these on stage)

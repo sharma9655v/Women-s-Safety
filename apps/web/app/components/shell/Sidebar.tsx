@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Bell,
+  Building2,
   Compass,
   FileText,
   Map as MapIcon,
@@ -27,6 +28,12 @@ const NAV = [
     label: "Community",
     icon: MessagesSquare,
     href: "/community",
+  },
+  {
+    id: "civic",
+    label: "Civic Ops",
+    icon: Building2,
+    href: "/civic",
   },
 ];
 

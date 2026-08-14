@@ -274,8 +274,19 @@
                     <div class="card"><h3>SOS</h3><p>Women Helpline 181 · Police 112 · Ambulance 102 — one-tap calls.</p></div>
                     <div class="card"><h3>Live location</h3><p>Browser geolocation → share/copy a maps link to trusted contacts.</p></div>
                     <div class="card"><h3>Share trip</h3><p>One button turns a planned trip into a shareable directions link.</p></div>
-                    <div class="card"><h3>Report loop</h3><p>Submissions feed the evidence pipeline; ML stays gated behind validation.</p></div>
+                    <div class="card"><h3>Voice + location</h3><p>Speak the destination in हिंदी or English; one tap to use your current location.</p></div>
                 </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">Same evidence, second consumer</span>
+                <h2 style="font-size:clamp(22px,2.6vw,34px); font-family:var(--typography-font-heading)">Civic Operations — from safer trips to safer streets</h2>
+                <div class="shots">
+                    <img src="pitch-assets/civic.png" alt="Civic operations dashboard">
+                </div>
+                <p class="small">The same evidence that powers routing becomes a municipal worklist: streetlight failures with map links, incident categories, and priority areas ranked by estimated safety.</p>
             </div>
         </div>
 
@@ -296,9 +307,9 @@
                 <span class="kicker">Built to be judged</span>
                 <h2 style="font-size:clamp(22px,2.6vw,34px); font-family:var(--typography-font-heading)">Engineering depth, not just screens</h2>
                 <div class="grid grid-4 animate-stagger" style="max-width:1100px">
-                    <div class="card"><span class="num">87</span><h3>API tests</h3><p>Safety-scoring logic, overlays, time-of-day, evidence pipelines.</p></div>
-                    <div class="card"><span class="num">24+8</span><h3>UI checks green</h3><p>E2E suites cover routing, SOS, themes, mobile, and console hygiene.</p></div>
-                    <div class="card"><span class="num">909</span><h3>Seeded observations</h3><p>10 Delhi hotspots, deterministic and idempotent — one command to run.</p></div>
+                    <div class="card"><span class="num">89</span><h3>API tests</h3><p>Safety-scoring logic, overlays, time-of-day, evidence pipelines.</p></div>
+                    <div class="card"><span class="num">26+8</span><h3>UI checks green</h3><p>E2E suites cover routing, SOS, themes, mobile, civic, console hygiene.</p></div>
+                    <div class="card"><span class="num">340</span><h3>Seeded observations</h3><p>10 Delhi hotspots, verified + conflicting states, deterministic and idempotent.</p></div>
                     <div class="card"><span class="num">100%</span><h3>Dockerized</h3><p>PostGIS + OSRM + API + web. API degrades to an in-memory evidence snapshot offline.</p></div>
                 </div>
                 <p class="small">Stack: FastAPI · PostGIS (PostGIS spatial joins) · OSRM (routes) · Redis · Next.js · Playwright E2E.</p>
@@ -349,7 +360,7 @@
 
     <div class="nav-controls">
         <button class="nav-btn" onclick="prevSlide()" aria-label="Previous slide">←</button>
-        <span class="slide-counter"><span id="current">1</span> / <span id="total">10</span></span>
+        <span class="slide-counter"><span id="current">1</span> / <span id="total">11</span></span>
         <button class="nav-btn" onclick="nextSlide()" aria-label="Next slide">→</button>
     </div>
 
