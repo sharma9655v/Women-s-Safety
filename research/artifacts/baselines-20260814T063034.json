@@ -1,0 +1,267 @@
+{
+  "experiment": "baselines-b1-b5",
+  "model_version": "deterministic-baseline-v1",
+  "evidence_model_version": "evidence-baseline-v1",
+  "hour_ist": 12,
+  "run_at": "2026-08-14T06:30:34+00:00",
+  "pairs": [
+    {
+      "pair": "seeded_area_day",
+      "origin": [
+        28.61,
+        77.23
+      ],
+      "destination": [
+        28.63,
+        77.21
+      ],
+      "candidates": [
+        {
+          "distance_m": 3712.9,
+          "duration_s": 2674.9,
+          "risk_dynamic": 0.1011170105742842,
+          "uncertainty_dynamic": 0.6485726825112869,
+          "risk_static": 0.10195676536827546,
+          "uncertainty_static": 0.6485726825112869,
+          "safety_dynamic": 0.8988829894257158
+        },
+        {
+          "distance_m": 3956.4,
+          "duration_s": 2852.7,
+          "risk_dynamic": 0.023674036211803574,
+          "uncertainty_dynamic": 0.7415223249930553,
+          "risk_static": 0.02381663784868331,
+          "uncertainty_static": 0.7415223249930553,
+          "safety_dynamic": 0.9763259637881965
+        },
+        {
+          "distance_m": 4547.5,
+          "duration_s": 3275.7,
+          "risk_dynamic": 0.024208980121226218,
+          "uncertainty_dynamic": 0.7400617564381637,
+          "risk_static": 0.024361127833864075,
+          "uncertainty_static": 0.7400617564381637,
+          "safety_dynamic": 0.9757910198787738
+        }
+      ],
+      "chosen": {
+        "B1_shortest": {
+          "candidate": 0,
+          "distance_m": 3712.9,
+          "duration_s": 2674.9,
+          "risk": 0.1011170105742842,
+          "uncertainty": 0.6485726825112869,
+          "safety": 0.8988829894257158
+        },
+        "B2_fastest": {
+          "candidate": 0,
+          "distance_m": 3712.9,
+          "duration_s": 2674.9,
+          "risk": 0.1011170105742842,
+          "uncertainty": 0.6485726825112869,
+          "safety": 0.8988829894257158
+        },
+        "B3_static_safety": {
+          "candidate": 1,
+          "distance_m": 3956.4,
+          "duration_s": 2852.7,
+          "risk": 0.02381663784868331,
+          "uncertainty": 0.7415223249930553,
+          "safety": 0.9761833621513167
+        },
+        "B4_dynamic_safety": {
+          "candidate": 1,
+          "distance_m": 3956.4,
+          "duration_s": 2852.7,
+          "risk": 0.023674036211803574,
+          "uncertainty": 0.7415223249930553,
+          "safety": 0.9763259637881965
+        },
+        "B5_dynamic_uncertainty": {
+          "candidate": 1,
+          "distance_m": 3956.4,
+          "duration_s": 2852.7,
+          "risk": 0.023674036211803574,
+          "uncertainty": 0.7415223249930553,
+          "safety": 0.9763259637881965
+        }
+      },
+      "comparisons": {
+        "risk_reduction_pct_b4_vs_b1": 76.5874840668754,
+        "time_penalty_pct_b4_vs_b2": 6.64697745710119,
+        "distance_penalty_pct_b4_vs_b1": 6.558215949796654
+      }
+    },
+    {
+      "pair": "connaught_place",
+      "origin": [
+        28.6314,
+        77.2167
+      ],
+      "destination": [
+        28.6139,
+        77.209
+      ],
+      "candidates": [
+        {
+          "distance_m": 2831.5,
+          "duration_s": 2042.6,
+          "risk_dynamic": 0.013227639386436736,
+          "uncertainty_dynamic": 0.7486220449850632,
+          "risk_static": 0.01323800331725525,
+          "uncertainty_static": 0.7486220449850632,
+          "safety_dynamic": 0.9867723606135632
+        },
+        {
+          "distance_m": 2865.2,
+          "duration_s": 2064.5,
+          "risk_dynamic": 0.012506956699990156,
+          "uncertainty_dynamic": 0.75,
+          "risk_static": 0.012506956699990156,
+          "uncertainty_static": 0.75,
+          "safety_dynamic": 0.9874930433000099
+        },
+        {
+          "distance_m": 3151.1,
+          "duration_s": 2268.2,
+          "risk_dynamic": 0.011918734910887128,
+          "uncertainty_dynamic": 0.75,
+          "risk_static": 0.011918734910887128,
+          "uncertainty_static": 0.75,
+          "safety_dynamic": 0.9880812650891129
+        }
+      ],
+      "chosen": {
+        "B1_shortest": {
+          "candidate": 0,
+          "distance_m": 2831.5,
+          "duration_s": 2042.6,
+          "risk": 0.013227639386436736,
+          "uncertainty": 0.7486220449850632,
+          "safety": 0.9867723606135632
+        },
+        "B2_fastest": {
+          "candidate": 0,
+          "distance_m": 2831.5,
+          "duration_s": 2042.6,
+          "risk": 0.013227639386436736,
+          "uncertainty": 0.7486220449850632,
+          "safety": 0.9867723606135632
+        },
+        "B3_static_safety": {
+          "candidate": 0,
+          "distance_m": 2831.5,
+          "duration_s": 2042.6,
+          "risk": 0.01323800331725525,
+          "uncertainty": 0.7486220449850632,
+          "safety": 0.9867619966827448
+        },
+        "B4_dynamic_safety": {
+          "candidate": 0,
+          "distance_m": 2831.5,
+          "duration_s": 2042.6,
+          "risk": 0.013227639386436736,
+          "uncertainty": 0.7486220449850632,
+          "safety": 0.9867723606135632
+        },
+        "B5_dynamic_uncertainty": {
+          "candidate": 0,
+          "distance_m": 2831.5,
+          "duration_s": 2042.6,
+          "risk": 0.013227639386436736,
+          "uncertainty": 0.7486220449850632,
+          "safety": 0.9867723606135632
+        }
+      },
+      "comparisons": {
+        "risk_reduction_pct_b4_vs_b1": 0.0,
+        "time_penalty_pct_b4_vs_b2": 0.0,
+        "distance_penalty_pct_b4_vs_b1": 0.0
+      }
+    },
+    {
+      "pair": "karol_bagh",
+      "origin": [
+        28.6519,
+        77.1908
+      ],
+      "destination": [
+        28.6139,
+        77.209
+      ],
+      "candidates": [
+        {
+          "distance_m": 6380.9,
+          "duration_s": 4603.8,
+          "risk_dynamic": 0.009764820183274129,
+          "uncertainty_dynamic": 0.75,
+          "risk_static": 0.009764820183274129,
+          "uncertainty_static": 0.75,
+          "safety_dynamic": 0.9902351798167258
+        },
+        {
+          "distance_m": 7152.0,
+          "duration_s": 5157.2,
+          "risk_dynamic": 0.011782534828499867,
+          "uncertainty_dynamic": 0.75,
+          "risk_static": 0.011782534828499867,
+          "uncertainty_static": 0.75,
+          "safety_dynamic": 0.9882174651715001
+        }
+      ],
+      "chosen": {
+        "B1_shortest": {
+          "candidate": 0,
+          "distance_m": 6380.9,
+          "duration_s": 4603.8,
+          "risk": 0.009764820183274129,
+          "uncertainty": 0.75,
+          "safety": 0.9902351798167258
+        },
+        "B2_fastest": {
+          "candidate": 0,
+          "distance_m": 6380.9,
+          "duration_s": 4603.8,
+          "risk": 0.009764820183274129,
+          "uncertainty": 0.75,
+          "safety": 0.9902351798167258
+        },
+        "B3_static_safety": {
+          "candidate": 0,
+          "distance_m": 6380.9,
+          "duration_s": 4603.8,
+          "risk": 0.009764820183274129,
+          "uncertainty": 0.75,
+          "safety": 0.9902351798167258
+        },
+        "B4_dynamic_safety": {
+          "candidate": 0,
+          "distance_m": 6380.9,
+          "duration_s": 4603.8,
+          "risk": 0.009764820183274129,
+          "uncertainty": 0.75,
+          "safety": 0.9902351798167258
+        },
+        "B5_dynamic_uncertainty": {
+          "candidate": 0,
+          "distance_m": 6380.9,
+          "duration_s": 4603.8,
+          "risk": 0.009764820183274129,
+          "uncertainty": 0.75,
+          "safety": 0.9902351798167258
+        }
+      },
+      "comparisons": {
+        "risk_reduction_pct_b4_vs_b1": 0.0,
+        "time_penalty_pct_b4_vs_b2": 0.0,
+        "distance_penalty_pct_b4_vs_b1": 0.0
+      }
+    }
+  ],
+  "aggregates": {
+    "pairs_compared": 3,
+    "mean_risk_reduction_pct_b4_vs_b1": 25.529161355625135,
+    "mean_time_penalty_pct_b4_vs_b2": 2.2156591523670635,
+    "mean_distance_penalty_pct_b4_vs_b1": 2.1860719832655513
+  }
+}

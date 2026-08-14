@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeRoute — Women's safety, mapped</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --color-background: #08090f;
+            --color-surface: #0d1117;
+            --color-surface-2: #141a24;
+            --color-border: rgba(139, 125, 255, 0.15);
+            --color-primary: #6d5cff;
+            --color-primary-2: #8b7dff;
+            --color-accent: #06d6a0;
+            --color-warning: #ffd166;
+            --color-danger: #ff5d73;
+            --color-text: #e6e9f2;
+            --color-text-muted: #9aa3b5;
+            --primitive-gradient-primary: linear-gradient(135deg, #6d5cff 0%, #06d6a0 100%);
+            --typography-font-heading: 'Space Grotesk', 'Segoe UI', sans-serif;
+            --typography-font-body: 'Inter', 'Segoe UI', sans-serif;
+        }
+        body {
+            background: var(--color-background);
+            color: var(--color-text);
+            font-family: var(--typography-font-body);
+            overflow: hidden;
+        }
+        .slide-deck {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        @media (min-width: 769px) {
+            .slide-deck {
+                max-width: calc(100vh * 16 / 9);
+                max-height: calc(100vw * 9 / 16);
+                margin: auto;
+                position: absolute;
+                inset: 0;
+            }
+        }
+        .slide {
+            position: absolute;
+            width: 100%; height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 60px;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.4s;
+            background:
+                radial-gradient(1200px 500px at 85% -10%, rgba(109, 92, 255, 0.14), transparent 60%),
+                radial-gradient(900px 420px at 5% 110%, rgba(6, 214, 160, 0.1), transparent 55%),
+                var(--color-background);
+            overflow: hidden;
+        }
+        .slide.active { opacity: 1; visibility: visible; }
+        .slide-content {
+            width: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+        }
+        h1, h2, h3 { font-family: var(--typography-font-heading); }
+        .slide-title {
+            font-size: clamp(34px, 6vw, 78px);
+            background: var(--primitive-gradient-primary);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.08;
+            letter-spacing: -0.02em;
+        }
+        .kicker {
+            font-size: clamp(11px, 1.1vw, 14px);
+            letter-spacing: 0.28em;
+            text-transform: uppercase;
+            color: var(--color-accent);
+            font-weight: 600;
+        }
+        .sub { font-size: clamp(15px, 1.6vw, 21px); color: var(--color-text-muted); max-width: 900px; line-height: 1.55; }
+        .small { font-size: clamp(11px, 1vw, 13px); color: var(--color-text-muted); }
+        .grid { display: grid; gap: 16px; width: 100%; max-width: 1080px; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .card {
+            background: rgba(13, 17, 23, 0.85);
+            border: 1px solid var(--color-border);
+            border-radius: 18px;
+            padding: 26px 22px;
+            text-align: left;
+            backdrop-filter: blur(8px);
+        }
+        .card h3 { font-size: clamp(14px, 1.3vw, 18px); color: var(--color-text); margin-bottom: 8px; }
+        .card p { font-size: clamp(12px, 1.05vw, 15px); color: var(--color-text-muted); line-height: 1.5; }
+        .card .num { font-size: clamp(26px, 3vw, 40px); font-weight: 700; background: var(--primitive-gradient-primary); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .shots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; width: 100%; max-width: 1100px; }
+        .shots img { width: 100%; border-radius: 14px; border: 1px solid var(--color-border); box-shadow: 0 18px 50px rgba(0,0,0,0.45); }
+        .shots.mobile { grid-template-columns: repeat(4, 1fr); }
+        .shots.mobile img { max-height: 44vh; object-fit: cover; }
+        .pill {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--color-border);
+            font-size: clamp(11px, 1vw, 13px);
+            color: var(--color-text-muted);
+            background: rgba(13, 17, 23, 0.7);
+        }
+        .chart-wrap { width: min(74%, 640px); height: clamp(220px, 38vh, 340px); }
+        .barchart { display: flex; align-items: flex-end; justify-content: center; gap: clamp(28px, 6vw, 72px); height: clamp(200px, 34vh, 320px); padding: 20px 12px 0; }
+        .bar-col { display: flex; flex-direction: column; align-items: center; gap: 10px; height: 100%; justify-content: flex-end; }
+        .bar { position: relative; width: clamp(70px, 9vw, 120px); height: var(--h, 30%); border-radius: 12px 12px 4px 4px; box-shadow: 0 14px 40px rgba(0,0,0,0.4); }
+        .bar-val { position: absolute; top: -34px; left: 50%; transform: translateX(-50%); font-size: clamp(16px, 2vw, 26px); font-weight: 700; color: var(--color-text); font-family: var(--typography-font-heading); }
+        .bar-label { font-size: clamp(11px, 1vw, 14px); color: var(--color-text-muted); }
+        .split { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: center; width: 100%; max-width: 1100px; text-align: left; }
+        .split ul { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+        .split li { font-size: clamp(13px, 1.2vw, 17px); color: var(--color-text-muted); line-height: 1.45; padding-left: 26px; position: relative; }
+        .split li::before { content: ""; position: absolute; left: 0; top: 8px; width: 9px; height: 9px; border-radius: 50%; background: var(--primitive-gradient-primary); }
+        .split b { color: var(--color-text); font-weight: 600; }
+        .quote { font-size: clamp(18px, 2.2vw, 30px); line-height: 1.4; max-width: 1000px; color: var(--color-text); }
+        .quote .mark { color: var(--color-accent); }
+        .footer-note { position: absolute; bottom: 18px; right: 26px; font-size: 11px; color: rgba(154, 163, 181, 0.6); }
+        @media (max-width: 768px) {
+            .slide { padding: 32px 24px; }
+            .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+            .shots { grid-template-columns: 1fr; }
+            .shots.mobile { grid-template-columns: 1fr 1fr; }
+            .split { grid-template-columns: 1fr; }
+            .chart-wrap { width: 96%; }
+        }
+        @media (max-width: 480px) {
+            .slide { padding: 24px 16px; }
+            .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .nav-controls { bottom: 14px; gap: 10px; }
+            .nav-btn { width: 32px; height: 32px; font-size: 14px; }
+        }
+        .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--primitive-gradient-primary); transition: width 0.3s; z-index: 1000; }
+        .nav-controls { position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 20px; z-index: 1000; }
+        .nav-btn { background: rgba(255,255,255,0.08); border: 1px solid var(--color-border); color: #fff; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 18px; }
+        .nav-btn:hover { background: rgba(109, 92, 255, 0.3); }
+        .slide-counter { color: var(--color-text-muted); font-size: 13px; }
+        .animate-fade-up { animation: fadeUp 0.6s ease-out forwards; opacity: 0; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-stagger > * { opacity: 0; animation: fadeUp 0.5s ease-out forwards; }
+        .animate-stagger > *:nth-child(1) { animation-delay: 0.1s; }
+        .animate-stagger > *:nth-child(2) { animation-delay: 0.2s; }
+        .animate-stagger > *:nth-child(3) { animation-delay: 0.3s; }
+        .animate-stagger > *:nth-child(4) { animation-delay: 0.4s; }
+        .animate-stagger > *:nth-child(5) { animation-delay: 0.5s; }
+        .animate-stagger > *:nth-child(6) { animation-delay: 0.6s; }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="slide-deck">
+
+        <div class="slide active">
+            <div class="slide-content">
+                <span class="kicker animate-fade-up">Smart India Hackathon</span>
+                <h1 class="slide-title animate-fade-up" style="animation-delay:0.1s">SafeRoute</h1>
+                <p class="sub animate-fade-up" style="animation-delay:0.2s">Women's safety, mapped — route planning that weighs evidence, uncertainty, and time of day, instead of guesswork.</p>
+                <div class="animate-fade-up" style="animation-delay:0.35s; display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+                    <span class="pill">FastAPI + PostGIS</span>
+                    <span class="pill">OSRM routing</span>
+                    <span class="pill">Next.js</span>
+                    <span class="pill">Offline-capable</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">The problem</span>
+                <h1 class="slide-title" style="font-size:clamp(30px,4.6vw,58px)">A route at night is not the same route by day</h1>
+                <p class="sub">Streetlights that fail, stretches with recent incident reports, and quiet sections change real risk hour by hour. Generic maps don't see it — and they don't show their uncertainty either.</p>
+                <div class="grid grid-3 animate-stagger">
+                    <div class="card"><h3>Last-mile risk</h3><p>The gap between the bus stop and the front door is where most journeys feel — and are — least protected.</p></div>
+                    <div class="card"><h3>Hidden evidence</h3><p>Incident and infrastructure data exists across civic systems, but not in the navigation people actually use.</p></div>
+                    <div class="card"><h3>Black-box scores</h3><p>Apps that claim a "safety score" rarely say what it's made of or how confident it is.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">The solution</span>
+                <h1 class="slide-title" style="font-size:clamp(30px,4.6vw,58px)">Evidence → routing → action</h1>
+                <div class="grid grid-3 animate-stagger" style="max-width:1100px">
+                    <div class="card">
+                        <span class="num">1.</span>
+                        <h3>Evidence engine</h3>
+                        <p>Incident reports, streetlight status, proximity to emergency services — each observation carries source, freshness, and confidence. Scoring is rule-based and transparent, never a hidden "AI vibe".</p>
+                    </div>
+                    <div class="card">
+                        <span class="num">2.</span>
+                        <h3>Uncertainty-aware routing</h3>
+                        <p>Three routes per trip — safety priority, balanced, time — each with score, confidence, and uncertainty shown. Time-of-day aware: night weighting changes the recommended route.</p>
+                    </div>
+                    <div class="card">
+                        <span class="num">3.</span>
+                        <h3>Action in one tap</h3>
+                        <p>SOS with helplines 181/112/102 and live-location sharing. Share-trip links. A report loop that feeds back into evidence — and streetlight data municipalities can action.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">Live product</span>
+                <h2 style="font-size:clamp(22px,2.6vw,34px); font-family:var(--typography-font-heading)">One demo run, every layer live</h2>
+                <div class="shots">
+                    <img src="pitch-assets/live.png" alt="Route planning with map overlays">
+                    <img src="pitch-assets/insights.png" alt="Area safety insights">
+                </div>
+                <p class="small">Route planning with incident + lighting overlays (left) and live area insights (right). "Demo data" badge marks seeded data — nothing is presented as real.</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">Time of day changes everything</span>
+                <h2 style="font-size:clamp(22px,2.6vw,34px); font-family:var(--typography-font-heading)">Same trip, same engine, night mode on</h2>
+                <div class="split">
+                    <div class="barchart" aria-label="Estimated risk: 2.7 percent by day, 5.4 percent at night">
+                        <div class="bar-col">
+                            <div class="bar" style="--h:18%; background:linear-gradient(180deg,#06d6a0,#0aa77e)">
+                                <span class="bar-val">2.7%</span>
+                            </div>
+                            <span class="bar-label">Day (14:00)</span>
+                        </div>
+                        <div class="bar-col">
+                            <div class="bar" style="--h:36%; background:linear-gradient(180deg,#ff5d73,#c93d52)">
+                                <span class="bar-val">5.4%</span>
+                            </div>
+                            <span class="bar-label">Night (22:00)</span>
+                        </div>
+                    </div>
+                    <div>
+                        <ul>
+                            <li><b>Measured on the live system:</b> Connaught Place → India Gate walk, risk estimate <b>2.7% by day</b> vs <b>5.4% at night</b>.</li>
+                            <li>The recommended route can change — the night toggle replans with the same evidence, weighted for darkness.</li>
+                            <li>The toggle is explicitly labeled "Demo: simulate time"; production derives IST hour from the request.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">Emergency & sharing</span>
+                <h2 style="font-size:clamp(22px,2.6vw,34px); font-family:var(--typography-font-heading)">Help is never more than one tap away</h2>
+                <div class="shots">
+                    <img src="pitch-assets/live-mobile.png" alt="Mobile route view">
+                    <img src="pitch-assets/alerts.png" alt="Alerts feed">
+                </div>
+                <div class="grid grid-4 animate-stagger" style="max-width:1100px">
+                    <div class="card"><h3>SOS</h3><p>Women Helpline 181 · Police 112 · Ambulance 102 — one-tap calls.</p></div>
+                    <div class="card"><h3>Live location</h3><p>Browser geolocation → share/copy a maps link to trusted contacts.</p></div>
+                    <div class="card"><h3>Share trip</h3><p>One button turns a planned trip into a shareable directions link.</p></div>
+                    <div class="card"><h3>Report loop</h3><p>Submissions feed the evidence pipeline; ML stays gated behind validation.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">Trust</span>
+                <p class="quote"><span class="mark">"</span>This product never promises safety. It surfaces evidence, shows uncertainty, and labels demo data as demo — so every estimate can be questioned, audited, and improved.<span class="mark">"</span></p>
+                <div class="grid grid-3 animate-stagger" style="max-width:1000px">
+                    <div class="card"><h3>No fabricated accuracy</h3><p>Every observation records source, freshness, and verification state. The UI shows uncertainty percentages instead of false precision.</p></div>
+                    <div class="card"><h3>Demo data is labeled</h3><p>Seeded evidence is tagged demo_seed and flagged with a visible badge — an honest demo is a believable demo.</p></div>
+                    <div class="card"><h3>Versioned data</h3><p>Evidence snapshots and model versions are traceable (data/versions manifests). Nothing is silently replaced.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">Built to be judged</span>
+                <h2 style="font-size:clamp(22px,2.6vw,34px); font-family:var(--typography-font-heading)">Engineering depth, not just screens</h2>
+                <div class="grid grid-4 animate-stagger" style="max-width:1100px">
+                    <div class="card"><span class="num">87</span><h3>API tests</h3><p>Safety-scoring logic, overlays, time-of-day, evidence pipelines.</p></div>
+                    <div class="card"><span class="num">24+8</span><h3>UI checks green</h3><p>E2E suites cover routing, SOS, themes, mobile, and console hygiene.</p></div>
+                    <div class="card"><span class="num">909</span><h3>Seeded observations</h3><p>10 Delhi hotspots, deterministic and idempotent — one command to run.</p></div>
+                    <div class="card"><span class="num">100%</span><h3>Dockerized</h3><p>PostGIS + OSRM + API + web. API degrades to an in-memory evidence snapshot offline.</p></div>
+                </div>
+                <p class="small">Stack: FastAPI · PostGIS (PostGIS spatial joins) · OSRM (routes) · Redis · Next.js · Playwright E2E.</p>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">Impact & scale</span>
+                <h1 class="slide-title" style="font-size:clamp(30px,4.4vw,54px)">From a safer trip to safer streets</h1>
+                <div class="grid grid-2" style="max-width:1000px; text-align:left">
+                    <div class="card">
+                        <h3>For the woman walking home</h3>
+                        <p>Pick the route with the best supported evidence, see why, and call or share in one tap — on a phone or a laptop, online or offline.</p>
+                    </div>
+                    <div class="card">
+                        <h3>For the civic body</h3>
+                        <p>Streetlight-failure and incident overlays are exactly the operational data municipal teams can act on. One extra consumer of the same evidence.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Any city</h3>
+                        <p>Swap the OSM extract and the evidence snapshot — Delhi runs today; every district profile is a config, not a rewrite.</p>
+                    </div>
+                    <div class="card">
+                        <h3>Integration-ready</h3>
+                        <p>Consumes public evidence, exposes JSON APIs, and keeps ML out of routing until it passes validation gates.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="slide">
+            <div class="slide-content">
+                <span class="kicker">Team SafeRoute</span>
+                <h1 class="slide-title">Let's map a safer India</h1>
+                <p class="sub">Watch the live demo — phone in one hand, laptop in the other. Every number you'll see is measured from the running system.</p>
+                <div class="animate-fade-up" style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:6px;">
+                    <span class="pill">localhost:3000</span>
+                    <span class="pill">docs/pitch.html</span>
+                    <span class="pill">one command: ./infra/demo.ps1</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="footer-note">Illustrative demo data is labeled demo_seed in the UI. The system never guarantees safety.</div>
+
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="prevSlide()" aria-label="Previous slide">←</button>
+        <span class="slide-counter"><span id="current">1</span> / <span id="total">10</span></span>
+        <button class="nav-btn" onclick="nextSlide()" aria-label="Next slide">→</button>
+    </div>
+
+    <script>
+        let current = 1;
+        const total = document.querySelectorAll('.slide').length;
+        document.getElementById('total').textContent = total;
+
+        function showSlide(n) {
+            if (n < 1) n = 1;
+            if (n > total) n = total;
+            current = n;
+            document.querySelectorAll('.slide').forEach((s, i) => {
+                s.classList.toggle('active', i === n - 1);
+            });
+            document.getElementById('current').textContent = n;
+            document.getElementById('progressBar').style.width = (n / total * 100) + '%';
+        }
+        function nextSlide() { showSlide(current + 1); }
+        function prevSlide() { showSlide(current - 1); }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+            if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.nav-controls')) nextSlide();
+        });
+
+        showSlide(1);
+    </script>
+</body>
+</html>

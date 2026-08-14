@@ -1,0 +1,11 @@
+{
+  "dataset_version": "20260814T062155",
+  "file": "dataset-20260814T062155.csv",
+  "rows": 251,
+  "span": {
+    "min_observed_at": "2025-04-01T05:41:01.151737+00:00",
+    "max_observed_at": "2026-08-14T04:55:10.666271+00:00"
+  },
+  "verified_count": 0,
+  "exported_at": "2026-08-14T06:21:55+00:00"
+}

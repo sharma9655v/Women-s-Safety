@@ -1,0 +1,20 @@
+{
+ "name": "demo-evidence",
+ "generated_at": "2026-08-14T16:00:00+00:00",
+ "observation_count": 325,
+ "inserted_or_kept": 300,
+ "source_type": "demo_seed",
+ "hotspots": [
+  "Connaught Place",
+  "India Gate",
+  "Chandni Chowk",
+  "Hauz Khas Village",
+  "Karol Bagh",
+  "Lajpat Nagar",
+  "Saket",
+  "Delhi University North Campus",
+  "Paharganj",
+  "Dwarka Sector 21"
+ ],
+ "sha256": "aa8ea879bc45bd83411441c4bc7a1d5c0533a61e0fe7282ad77e04e5a9b29b1a"
+}

@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.venv/
+__pycache__/
+*.pyc
+
+# Env & secrets
+.env
+.env.local
+.env.production
+
+# Data artifacts (large, versioned externally)
+data/*.osm.pbf
+data/*.mbtiles
+data/*.gf-*
+data/osrm/
+data/processed/
+ml/models/*.joblib
+ml/models/*.json
+ml/experiments/*.json
+ml/experiments/*.csv
+
+# Build output
+apps/web/.next/
+apps/web/out/
+dist/
+build/
+
+# Next.js
+apps/web/.env*.local
+
+# Misc
+.DS_Store
+Thumbs.db
+*.log
+.coverage
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/

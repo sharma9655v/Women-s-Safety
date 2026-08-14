@@ -1,0 +1,11 @@
+{
+  "name": "map-for-women",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev:api": "uv run --directory apps/api uvicorn app.main:app --reload --port 8000",
+    "dev:web": "pnpm --dir apps/web dev",
+    "test": "pnpm --dir apps/web lint && pnpm --dir apps/web typecheck"
+  },
+  "packageManager": "pnpm@11.21.0"
+}

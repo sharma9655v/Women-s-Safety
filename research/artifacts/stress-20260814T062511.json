@@ -1,0 +1,86 @@
+{
+  "experiment": "stress-evidence",
+  "model_version": "deterministic-baseline-v1",
+  "evidence_model_version": "evidence-baseline-v1",
+  "now": "2026-08-14T12:00:00+00:00",
+  "run_at": "2026-08-14T06:25:11+00:00",
+  "scenarios": {
+    "missing_evidence": {
+      "risk": 0.09661308951190849,
+      "confidence": 0.25,
+      "uncertainty": 0.75,
+      "reasons": [
+        "Limited safety data for this segment",
+        "No emergency facility within 3 km"
+      ]
+    },
+    "stale_single_report_600d": {
+      "risk": 0.09661308951190849,
+      "confidence": 0.25,
+      "reasons": [
+        "Limited safety data for this segment",
+        "No emergency facility within 3 km"
+      ]
+    },
+    "fresh_single_report_2h": {
+      "risk": 0.4759747430687321,
+      "confidence": 0.7,
+      "reasons": [
+        "Recent incident reports on this segment",
+        "No emergency facility within 3 km"
+      ]
+    },
+    "noisy_three_same_source_weak": {
+      "risk": 0.6301911252683396,
+      "confidence": 0.9,
+      "reasons": [
+        "Recent incident reports on this segment",
+        "No emergency facility within 3 km"
+      ]
+    },
+    "corroborated_two_sources": {
+      "risk": 0.6202560317788492,
+      "confidence": 0.8,
+      "reasons": [
+        "Recent incident reports on this segment",
+        "No emergency facility within 3 km"
+      ]
+    },
+    "conflicting_evidence": {
+      "risk": 0.21379258655922248,
+      "confidence": 0.5599999999999999,
+      "uncertainty": 0.44000000000000006,
+      "reasons": [
+        "Streetlight failure reported on this segment",
+        "Conflicting recent evidence on this segment",
+        "No emergency facility within 3 km"
+      ]
+    },
+    "day_vs_night_same_evidence": {
+      "day": {
+        "risk": 0.47846838960926646,
+        "reasons": [
+          "Recent incident reports on this segment",
+          "No emergency facility within 3 km"
+        ]
+      },
+      "night": {
+        "risk": 0.6796823259725098,
+        "reasons": [
+          "Recent incident reports on this segment",
+          "No emergency facility within 3 km",
+          "Higher-risk road type for night walking"
+        ]
+      },
+      "night_over_day_ratio": 1.421
+    },
+    "night_without_evidence_lit_vs_unlit": {
+      "reasons": [
+        "Limited safety data for this segment",
+        "No emergency facility within 3 km",
+        "Higher-risk road type for night walking"
+      ],
+      "note": "OSM lit tag only affects lighting risk, which needs lighting evidence; no evidence -> unchanged"
+    }
+  }
+}

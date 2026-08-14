@@ -1,0 +1,8 @@
+{
+  "dataset": "northern-zone-latest",
+  "source": "https://download.geofabrik.de/asia/india/northern-zone-latest.osm.pbf",
+  "downloaded_at": "2026-08-13T17:26:44Z",
+  "sha256": "A22C3ADF0A5F0ABFE7B9517EBFDC7B57DC1BEF2284659BD3106CB745E45466A4",
+  "bytes": 222604081,
+  "notes": "Geofabrik Northern Zone extract covering Delhi NCR; used for OSRM dev graph"
+}

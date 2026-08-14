@@ -1,0 +1,10 @@
+{
+  "verified_observations": 0,
+  "total_observations": 251,
+  "span_days": 499.96816567747686,
+  "threshold_observations": 1000,
+  "threshold_span_days": 90,
+  "open": false,
+  "reason": "verified observations 0 < 1000",
+  "checked_at": "2026-08-14T06:21:48+00:00"
+}

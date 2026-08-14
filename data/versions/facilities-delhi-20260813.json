@@ -1,0 +1,9 @@
+{
+  "dataset": "facilities-delhi-20260813",
+  "source": "Overpass API (mirror: https://overpass.kumi.systems/api/interpreter)",
+  "downloaded_at": "2026-08-13T18:02:00Z",
+  "bbox": [76.8, 28.4, 77.35, 28.9],
+  "feature_count": 3927,
+  "types": ["police", "hospital", "pharmacy", "fire_station", "transit_stop", "public_place"],
+  "notes": "Fetched via apps/api/app/facilities; public overpass-api.de timed out on this bbox"
+}

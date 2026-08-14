@@ -1,0 +1,114 @@
+{
+  "experiment": "streetlight-lifecycle",
+  "model_version": "deterministic-baseline-v1",
+  "evidence_model_version": "evidence-baseline-v1",
+  "t0": "2026-06-01T12:00:00+00:00",
+  "run_at": "2026-08-14T06:25:12+00:00",
+  "steps": [
+    {
+      "label": "t0_verified_working",
+      "day": 0,
+      "state_counts": {
+        "VERIFIED": 1
+      },
+      "overall_freshness": 1.0,
+      "overall_confidence": 0.8347011117784134,
+      "t0_freshness": 1.0,
+      "uncertainty": 0.30000000000000004,
+      "risk": 0.18920805693117207,
+      "reasons": [
+        "Streetlight failure reported on this segment",
+        "No emergency facility within 3 km"
+      ],
+      "conflicts": []
+    },
+    {
+      "label": "t30_failure_reported",
+      "day": 30,
+      "state_counts": {
+        "VERIFIED": 1,
+        "CONFLICTING": 1,
+        "CORROBORATED": 1
+      },
+      "overall_freshness": 1.0,
+      "overall_confidence": 0.475,
+      "t0_freshness": 0.5488116360940265,
+      "uncertainty": 0.37,
+      "risk": 0.2157865804718293,
+      "reasons": [
+        "Streetlight failure reported on this segment",
+        "Conflicting recent evidence on this segment",
+        "No emergency facility within 3 km"
+      ],
+      "conflicts": [
+        "streetlight_not_working"
+      ]
+    },
+    {
+      "label": "t31_multiple_reports",
+      "day": 31,
+      "state_counts": {
+        "VERIFIED": 1,
+        "CONFLICTING": 1,
+        "CORROBORATED": 3
+      },
+      "overall_freshness": 1.0,
+      "overall_confidence": 0.475,
+      "t0_freshness": 0.5379444375946745,
+      "uncertainty": 0.30000000000000004,
+      "risk": 0.22058969318209837,
+      "reasons": [
+        "Streetlight failure reported on this segment",
+        "Conflicting recent evidence on this segment",
+        "No emergency facility within 3 km"
+      ],
+      "conflicts": [
+        "streetlight_not_working"
+      ]
+    },
+    {
+      "label": "t60_verified_repair",
+      "day": 60,
+      "state_counts": {
+        "VERIFIED": 2,
+        "CONFLICTING": 1,
+        "CORROBORATED": 3
+      },
+      "overall_freshness": 1.0,
+      "overall_confidence": 0.475,
+      "t0_freshness": 0.30119421191220214,
+      "uncertainty": 0.30000000000000004,
+      "risk": 0.21957319634466915,
+      "reasons": [
+        "Streetlight failure reported on this segment",
+        "Conflicting recent evidence on this segment",
+        "No emergency facility within 3 km"
+      ],
+      "conflicts": [
+        "streetlight_not_working"
+      ]
+    },
+    {
+      "label": "t120_failure_decayed",
+      "day": 120,
+      "state_counts": {
+        "VERIFIED": 2,
+        "CONFLICTING": 1,
+        "CORROBORATED": 3
+      },
+      "overall_freshness": 0.30119421191220214,
+      "overall_confidence": 0.40423582365380395,
+      "t0_freshness": 0.09071795328941251,
+      "uncertainty": 0.30000000000000004,
+      "risk": 0.18542340325568596,
+      "reasons": [
+        "Streetlight failure reported on this segment",
+        "Conflicting recent evidence on this segment",
+        "No emergency facility within 3 km"
+      ],
+      "conflicts": [
+        "streetlight_not_working"
+      ]
+    }
+  ]
+}

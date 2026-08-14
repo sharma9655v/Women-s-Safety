@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: map-for-women-ml
+Version: 0.1.0
+Summary: ML experiments for Map for Women. Training is gated on labeled data (never train before the gate passes).
+Requires-Python: >=3.12
+Requires-Dist: psycopg[binary]>=3.2

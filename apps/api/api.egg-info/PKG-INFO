@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: api
+Version: 0.1.0
+Summary: Map for Women — safety-aware routing API
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.115
+Requires-Dist: uvicorn[standard]>=0.30
+Requires-Dist: pydantic>=2.9
+Requires-Dist: pydantic-settings>=2.5
+Requires-Dist: sqlalchemy>=2.0
+Requires-Dist: psycopg[binary]>=3.2
+Requires-Dist: geoalchemy2>=0.15
+Requires-Dist: httpx>=0.27
+Requires-Dist: shapely>=2.1.2
+Requires-Dist: redis>=5.0
+Requires-Dist: cryptography>=43.0
+Requires-Dist: pillow>=10.4

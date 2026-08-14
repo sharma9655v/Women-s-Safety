@@ -1,0 +1,31 @@
+[project]
+name = "map-for-women-ml"
+version = "0.1.0"
+description = "ML experiments for Map for Women. Training is gated on labeled data (never train before the gate passes)."
+requires-python = ">=3.12"
+dependencies = [
+    "psycopg[binary]>=3.2",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.6",
+]
+
+[tool.uv]
+package = true
+
+[tool.setuptools]
+packages = ["ml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP", "B", "ASYNC"]
