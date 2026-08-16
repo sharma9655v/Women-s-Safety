@@ -90,10 +90,12 @@ def get_rate_limiter(
     """
     if limit is None:
         limit = settings.report_rate_limit_per_hour
+    if not settings.redis_url:
+        return MemoryRateLimiter(limit, window_s)
     try:
         probe = redis_client.from_url(settings.redis_url, socket_connect_timeout=2)
         probe.ping()
         probe.close()
-    except redis_client.RedisError:
+    except Exception:
         return MemoryRateLimiter(limit, window_s)
     return RedisRateLimiter(settings.redis_url, limit, window_s, prefix=prefix)
