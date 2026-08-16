@@ -20,7 +20,7 @@ from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 
 from fastapi import HTTPException, Request, status
-from sqlalchemy import text
+from sqlalchemy import Engine, text
 
 from app.config import settings
 from app.db import make_engine
@@ -62,7 +62,7 @@ class MemoryDeviceSessionStore:
 class PostgresDeviceSessionStore:
     """device_sessions table store (production)."""
 
-    def __init__(self, engine: object) -> None:
+    def __init__(self, engine: Engine) -> None:
         self._engine = engine
 
     def create(self, client_id_value: str, ttl: timedelta) -> str:
@@ -97,7 +97,7 @@ class PostgresDeviceSessionStore:
             expires_at = expires_at.replace(tzinfo=UTC)
         if datetime.now(UTC) > expires_at:
             return None
-        return client_id_value
+        return str(client_id_value)
 
     def revoke(self, token: str) -> None:
         with self._engine.begin() as conn:
@@ -132,9 +132,7 @@ def require_client_id(request: Request) -> str:
     if auth.lower().startswith("bearer "):
         token = auth[7:].strip()
         if not token:
-            raise HTTPException(
-                status.HTTP_401_UNAUTHORIZED, "Missing bearer token"
-            )
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token")
         store = get_device_session_store()
         client_id_value = store.resolve(token)
         if client_id_value is None:

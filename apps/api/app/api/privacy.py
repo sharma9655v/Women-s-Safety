@@ -102,9 +102,7 @@ def privacy_dashboard(
         ),
         guardian_active=guardian_session is not None,
         guardian_checkin_deadline=(
-            guardian_session.checkin_deadline.isoformat()
-            if guardian_session is not None
-            else None
+            guardian_session.checkin_deadline.isoformat() if guardian_session is not None else None
         ),
         trusted_contact_count=len(contact_list),
         emergency_active=emergency is not None,
@@ -119,9 +117,7 @@ def privacy_dashboard(
 def get_privacy_settings(
     request: Request,
     prefs: Annotated[SafetyPreferencesStore, Depends(get_safety_preferences_store)],
-    discreet: Annotated[
-        DiscreetModeSettingsStore, Depends(get_discreet_mode_settings_store)
-    ],
+    discreet: Annotated[DiscreetModeSettingsStore, Depends(get_discreet_mode_settings_store)],
     cid: Annotated[str, Depends(require_client_id)],
 ) -> PrivacySettingsResponse:
     return _settings_response(prefs, discreet, cid)
@@ -132,9 +128,7 @@ def update_privacy_settings(
     payload: PrivacySettingsUpdate,
     request: Request,
     prefs: Annotated[SafetyPreferencesStore, Depends(get_safety_preferences_store)],
-    discreet: Annotated[
-        DiscreetModeSettingsStore, Depends(get_discreet_mode_settings_store)
-    ],
+    discreet: Annotated[DiscreetModeSettingsStore, Depends(get_discreet_mode_settings_store)],
     limiter: Annotated[RateLimiter, Depends(_privacy_limiter)],
     cid: Annotated[str, Depends(require_client_id)],
 ) -> PrivacySettingsResponse:
@@ -162,10 +156,15 @@ def update_privacy_settings(
             ),
             voice_language=payload.voice_language or current.voice_language,
         )
-    else:
         prefs.update_preferences(
             cid,
-            **_DEFAULT_PREFS,
+            prefer_better_lit=True,
+            prefer_main_roads=True,
+            prefer_near_emergency=True,
+            avoid_known_hazards=True,
+            avoid_isolated_roads=False,
+            minimize_walking_time=False,
+            default_profile="balanced",
             discreet_mode_enabled=bool(payload.discreet_mode_enabled),
             voice_guidance_enabled=bool(payload.voice_guidance_enabled),
             voice_language=payload.voice_language or "en",

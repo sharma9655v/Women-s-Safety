@@ -7,18 +7,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.config import settings
 from app.auth import require_client_id
 from app.identity import client_hash
 from app.reports.limiter import RateLimiter, get_rate_limiter
 from app.safety import (
-    VoiceGuidanceSession,
     VoiceGuidanceStore,
     get_voice_guidance_store,
 )
 from app.schemas import (
-    VoiceGuidanceStart,
     VoiceGuidanceResponse,
+    VoiceGuidanceStart,
     VoiceGuidanceStatusResponse,
 )
 
@@ -98,6 +96,7 @@ def get_voice_status(
     session = store.get_voice_status(cid)
     if session is None:
         from app.schemas import VoiceGuidanceStatusResponse as _Resp
+
         return _Resp(
             session_id="",
             client_id=cid,

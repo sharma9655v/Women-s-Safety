@@ -11,7 +11,6 @@ from fastapi import APIRouter, Depends, Query, Request
 from app.auth import require_client_id
 from app.safety import NotificationStore, get_notification_store
 from app.schemas import NotificationEventResponse, NotificationListResponse
-from app.safety.journey_checkin import JourneyCheckinSession
 
 router = APIRouter(prefix="/api", tags=["notifications"])
 

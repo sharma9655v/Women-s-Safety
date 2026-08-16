@@ -24,8 +24,6 @@ from sqlalchemy import Engine, Row, text
 
 from app.db import make_engine
 
-from app.config import settings
-
 logger = logging.getLogger(__name__)
 
 

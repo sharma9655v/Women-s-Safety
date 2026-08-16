@@ -3,9 +3,8 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 
-from app.db import make_engine
-
 from app.config import settings
+from app.db import make_engine
 from app.overlays.store import (
     DEMO_SOURCE,
     MemoryOverlayStore,

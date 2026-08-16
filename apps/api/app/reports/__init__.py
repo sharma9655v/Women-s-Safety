@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from app.db import make_engine
-
 from app.config import settings
+from app.db import make_engine
 from app.evidence.registry import get_evidence_store
 from app.evidence.store import PostgresEvidenceStore
 from app.reports.store import MemoryReportStore, PostgresReportStore, ReportStore

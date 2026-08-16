@@ -71,9 +71,7 @@ def create_community_post(
     return _to_response(post)
 
 
-@router.post(
-    "/admin/community/{post_id}/verify", response_model=CommunityModerateResponse
-)
+@router.post("/admin/community/{post_id}/verify", response_model=CommunityModerateResponse)
 def verify_community_post(
     post_id: str,
     store: Annotated[CommunityStore, Depends(get_community_store)],
@@ -86,9 +84,7 @@ def verify_community_post(
     return CommunityModerateResponse(id=post.id, status="VERIFIED")
 
 
-@router.post(
-    "/admin/community/{post_id}/reject", response_model=CommunityModerateResponse
-)
+@router.post("/admin/community/{post_id}/reject", response_model=CommunityModerateResponse)
 def reject_community_post(
     post_id: str,
     store: Annotated[CommunityStore, Depends(get_community_store)],

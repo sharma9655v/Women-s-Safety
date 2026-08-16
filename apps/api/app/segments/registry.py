@@ -3,9 +3,8 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from app.db import make_engine
-
 from app.config import settings
+from app.db import make_engine
 from app.segments.store import MemorySegmentStore, PostgisSegmentStore, SegmentStore
 
 

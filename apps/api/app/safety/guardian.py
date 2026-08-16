@@ -26,9 +26,8 @@ from typing import Any
 
 from sqlalchemy import Engine, Row, text
 
-from app.db import make_engine
-
 from app.config import settings
+from app.db import make_engine
 
 logger = logging.getLogger(__name__)
 

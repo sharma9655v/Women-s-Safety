@@ -111,9 +111,7 @@ def create_emergency(
 ) -> EmergencySessionResponse:
     _require_limit(limiter, cid)
     if store.active_emergency(cid) is not None:
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "An emergency session is already active"
-        )
+        raise HTTPException(status.HTTP_409_CONFLICT, "An emergency session is already active")
     session = store.create_emergency(
         cid,
         latitude=payload.latitude,
@@ -258,9 +256,7 @@ def update_sharing_location(
     _require_limit(limiter, cid)
     session = store.update_sharing_location(cid, session_id, payload.latitude, payload.longitude)
     if session is None:
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, "Unknown, ended or expired sharing session"
-        )
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown, ended or expired sharing session")
     return _sharing_response(session)
 
 

@@ -14,13 +14,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
-from app.config import settings
 from app.auth import require_client_id
 from app.identity import client_hash
 from app.reports.limiter import RateLimiter, get_rate_limiter
 from app.safety import NotificationStore, get_notification_store
 from app.safety.alerts import Alert, AlertStore, get_alert_store
-from app.schemas import AlertCreate, AlertResponse, AlertListResponse
+from app.schemas import AlertCreate, AlertListResponse, AlertResponse
 
 router = APIRouter(prefix="/api", tags=["safety_alerts"])
 

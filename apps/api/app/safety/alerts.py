@@ -2,21 +2,19 @@
 
 Handles creation, listing, and filtering of safety alerts per client.
 All alerts are scoped to the pseudonymous client_id."""
+
 from __future__ import annotations
 
-import json
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from typing import Any
 
 from sqlalchemy import Engine, Row, text
 
 from app.db import make_engine
-
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -118,18 +116,14 @@ class MemoryAlertStore(AlertStore):
         return alert
 
     def list_alerts(self, client_id_value: str, limit: int) -> Sequence[Alert]:
-        return [
-            a
-            for a in self._alerts.values()
-            if a.client_id == client_id_value
-        ][-limit:][::-1]
+        return [a for a in self._alerts.values() if a.client_id == client_id_value][-limit:][::-1]
 
     def active_alerts(self, client_id_value: str) -> Sequence[Alert]:
         now = datetime.now(UTC)
         return [
             a
             for a in self._alerts.values()
-            if a.client_id == client_id_value and a.expires_at > now
+            if a.client_id == client_id_value and a.expires_at is not None and a.expires_at > now
         ]
 
 
@@ -168,10 +162,10 @@ class PostgresAlertStore(AlertStore):
         with self._engine.begin() as conn:
             row = conn.execute(
                 text(
-                    f"INSERT INTO safety_alerts (client_id, category, severity, lat, lon, "
-                    f"location_name, description, source, evidence_status, confidence, "
-                    f"observed_at) VALUES (:cid, :cat, :sev, :lat, :lon, :loc_name, "
-                    f":desc, :src, :evid, :conf, :obs) RETURNING *"
+                    "INSERT INTO safety_alerts (client_id, category, severity, lat, lon, "
+                    "location_name, description, source, evidence_status, confidence, "
+                    "observed_at) VALUES (:cid, :cat, :sev, :lat, :lon, :loc_name, "
+                    ":desc, :src, :evid, :conf, :obs) RETURNING *"
                 ),
                 {
                     "cid": client_id_value,
@@ -193,24 +187,23 @@ class PostgresAlertStore(AlertStore):
         with self._engine.connect() as conn:
             rows = conn.execute(
                 text(
-                    f"SELECT id, client_id, category, severity, lat, lon, location_name, "
-                    f"description, source, evidence_status, confidence, observed_at, "
-                    f"expires_at, created_at FROM safety_alerts WHERE client_id = :cid "
-                    f"ORDER BY created_at DESC LIMIT :limit"
+                    "SELECT id, client_id, category, severity, lat, lon, location_name, "
+                    "description, source, evidence_status, confidence, observed_at, "
+                    "expires_at, created_at FROM safety_alerts WHERE client_id = :cid "
+                    "ORDER BY created_at DESC LIMIT :limit"
                 ),
                 {"cid": client_id_value, "limit": limit},
             ).all()
         return [_to_alert(row) for row in rows]
 
     def active_alerts(self, client_id_value: str) -> Sequence[Alert]:
-        now = datetime.now(UTC)
         with self._engine.connect() as conn:
             rows = conn.execute(
                 text(
-                    f"SELECT id, client_id, category, severity, lat, lon, location_name, "
-                    f"description, source, evidence_status, confidence, observed_at, "
-                    f"expires_at, created_at FROM safety_alerts WHERE client_id = :cid "
-                    f"AND expires_at > now ORDER BY created_at DESC"
+                    "SELECT id, client_id, category, severity, lat, lon, location_name, "
+                    "description, source, evidence_status, confidence, observed_at, "
+                    "expires_at, created_at FROM safety_alerts WHERE client_id = :cid "
+                    "AND expires_at > now ORDER BY created_at DESC"
                 ),
                 {"cid": client_id_value},
             ).all()

@@ -50,9 +50,7 @@ def test_valid_rows_pass() -> None:
 
 
 def test_duplicates_dropped_via_evidence_hash() -> None:
-    report = validate_rows(
-        [dict(BASE_ROW), dict(BASE_ROW)], source_type="civic_feed", now=NOW
-    )
+    report = validate_rows([dict(BASE_ROW), dict(BASE_ROW)], source_type="civic_feed", now=NOW)
     assert len(report.valid) == 1
     assert report.duplicates_dropped == 1
 

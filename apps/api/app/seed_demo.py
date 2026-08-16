@@ -22,9 +22,8 @@ from pathlib import Path
 
 from sqlalchemy import Engine, text
 
-from app.db import make_engine
-
 from app.config import settings
+from app.db import make_engine
 from app.evidence.engine import evidence_hash
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -112,9 +111,7 @@ def _build_observation(
     }
 
 
-def _row_to_snapshot_item(
-    row: object, lat: float, lon: float, area_name: str
-) -> dict[str, object]:
+def _row_to_snapshot_item(row: object, lat: float, lon: float, area_name: str) -> dict[str, object]:
     value_json = row.value_json  # type: ignore[attr-defined]
     if not isinstance(value_json, dict):
         value_json = {}
@@ -147,7 +144,7 @@ def main() -> int:
     engine: Engine | None = None
     if settings.database_url:
         try:
-            engine = make_engine()  # type: ignore[assignment]
+            engine = make_engine()
             assert engine is not None
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))

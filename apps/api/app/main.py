@@ -3,11 +3,13 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from typing import Awaitable, Callable
+from collections.abc import Awaitable, Callable
 
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.alerts import router as alerts_router
+from app.api.auth import router as auth_router
 from app.api.community import router as community_router
 from app.api.contacts import router as contacts_router
 from app.api.discreet_mode import router as discreet_mode_router
@@ -23,8 +25,6 @@ from app.api.preferences import router as preferences_router
 from app.api.privacy import router as privacy_router
 from app.api.reports import router as reports_router
 from app.api.routes import router as api_router
-from app.api.alerts import router as alerts_router
-from app.api.auth import router as auth_router
 from app.api.voice_guidance import router as voice_guidance_router
 from app.config import settings
 

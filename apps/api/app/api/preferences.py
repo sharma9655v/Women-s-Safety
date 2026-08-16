@@ -2,18 +2,17 @@
 that influence routing but never bypass the core safety model.
 
 Stored per client, returned via /api/preferences endpoint."""
+
 from __future__ import annotations
 
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.config import settings
 from app.auth import require_client_id
 from app.identity import client_hash
 from app.reports.limiter import RateLimiter, get_rate_limiter
 from app.safety import (
-    SafetyPreferences,
     SafetyPreferencesStore,
     get_safety_preferences_store,
 )
@@ -47,6 +46,7 @@ def get_preferences(
     if prefs is None:
         # Return defaults
         from app.schemas import SafetyPreferencesResponse as _Resp
+
         return _Resp(
             client_id=cid,
             prefer_better_lit=True,

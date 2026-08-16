@@ -28,7 +28,13 @@ export function LiveStatusSection({ band, confidence, loading }: LiveStatusSecti
           : "var(--risk-limited)";
 
   const confidenceLabel =
-    confidence === "high" ? "High" : confidence === "medium" ? "Medium" : confidence === "low" ? "Low" : "—";
+    confidence === "high"
+      ? "High"
+      : confidence === "medium"
+        ? "Medium"
+        : confidence === "low"
+          ? "Low"
+          : "—";
 
   return (
     <div className="live-status-section">

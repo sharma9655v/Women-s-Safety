@@ -19,8 +19,6 @@ from sqlalchemy import Engine, text
 
 from app.db import make_engine
 
-from app.config import settings
-
 logger = logging.getLogger(__name__)
 
 POST_KINDS = ("alert", "route_update", "photo")
@@ -72,9 +70,7 @@ class MemoryCommunityStore:
         self._posts: list[CommunityPost] = []
         self._next_id = 1
 
-    def create(
-        self, client_id_value: str, kind: str, location: str, body: str
-    ) -> CommunityPost:
+    def create(self, client_id_value: str, kind: str, location: str, body: str) -> CommunityPost:
         post = CommunityPost(
             id=f"post-{self._next_id}",
             client_id=client_id_value,
@@ -120,9 +116,7 @@ class PostgresCommunityStore:
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
 
-    def create(
-        self, client_id_value: str, kind: str, location: str, body: str
-    ) -> CommunityPost:
+    def create(self, client_id_value: str, kind: str, location: str, body: str) -> CommunityPost:
         with self._engine.begin() as conn:
             row = conn.execute(
                 text(
@@ -168,10 +162,7 @@ class PostgresCommunityStore:
     def count_by_status(self) -> dict[str, int]:
         with self._engine.connect() as conn:
             rows = conn.execute(
-                text(
-                    "SELECT status, count(*) FROM community_posts "
-                    "GROUP BY status"
-                )
+                text("SELECT status, count(*) FROM community_posts GROUP BY status")
             ).all()
         counts = {"PENDING": 0, "VERIFIED": 0, "REJECTED": 0}
         for status, count in rows:

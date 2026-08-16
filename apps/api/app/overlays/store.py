@@ -87,13 +87,8 @@ class OverlayPoint:
 class OverlayStore:
     """Interface for map overlay + area insight queries (PostGIS and memory)."""
 
-    def incidents(
-        self, bbox: BBox, limit: int = 500
-    ) -> list[IncidentMarker]:
-        return [
-            _marker_from_point(p)
-            for p in self.points(bbox, INCIDENT_OBSERVATION_TYPES, limit)
-        ]
+    def incidents(self, bbox: BBox, limit: int = 500) -> list[IncidentMarker]:
+        return [_marker_from_point(p) for p in self.points(bbox, INCIDENT_OBSERVATION_TYPES, limit)]
 
     def lighting(self, bbox: BBox, limit: int = 500) -> list[LightingMarker]:
         return [
@@ -224,10 +219,7 @@ class PostgresOverlayStore(OverlayStore):
         ]
 
     def incidents(self, bbox: BBox, limit: int = 500) -> list[IncidentMarker]:
-        return [
-            _marker_from_point(p)
-            for p in self.points(bbox, INCIDENT_OBSERVATION_TYPES, limit)
-        ]
+        return [_marker_from_point(p) for p in self.points(bbox, INCIDENT_OBSERVATION_TYPES, limit)]
 
     def lighting(self, bbox: BBox, limit: int = 500) -> list[LightingMarker]:
         return [
@@ -290,10 +282,7 @@ class MemoryOverlayStore(OverlayStore):
         return wanted[:limit]
 
     def incidents(self, bbox: BBox, limit: int = 500) -> list[IncidentMarker]:
-        return [
-            _marker_from_point(p)
-            for p in self.points(bbox, INCIDENT_OBSERVATION_TYPES, limit)
-        ]
+        return [_marker_from_point(p) for p in self.points(bbox, INCIDENT_OBSERVATION_TYPES, limit)]
 
     def lighting(self, bbox: BBox, limit: int = 500) -> list[LightingMarker]:
         return [

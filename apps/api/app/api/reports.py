@@ -20,12 +20,12 @@ from app.schemas import (
     AdminReport,
     AdminReportListResponse,
     AdminVerificationResponse,
+    QuickReportRequest,
+    QuickReportResponse,
     RecomputeRequest,
     RecomputeResponse,
     ReportRequest,
     ReportResponse,
-    QuickReportRequest,
-    QuickReportResponse,
 )
 
 router = APIRouter(prefix="/api", tags=["reports"])
@@ -123,11 +123,12 @@ def create_quick_report(
     limiter: Annotated[RateLimiter, Depends(get_rate_limiter)],
     duplicates: Annotated[DuplicateDetector, Depends(get_duplicate_detector)],
 ) -> QuickReportResponse:
-    if not evidence.segment_exists(payload.segment_id):
+    segment_id = payload.segment_id if payload.segment_id is not None else 0
+    if payload.segment_id is not None and not evidence.segment_exists(payload.segment_id):
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown segment id: {payload.segment_id}")
 
     client = client_key(request)
-    dup_key = report_key(payload.segment_id, payload.category, payload.description or "", client)
+    dup_key = report_key(segment_id, payload.category, payload.description or "", client)
     if duplicates.is_duplicate(dup_key):
         raise HTTPException(status.HTTP_409_CONFLICT, "Duplicate report — already received")
     if not limiter.allow(client):
@@ -135,7 +136,7 @@ def create_quick_report(
 
     redacted = redact_description(payload.description) if payload.description is not None else None
     report_id = reports.insert_report(
-        segment_id=payload.segment_id,
+        segment_id=segment_id,
         category=payload.category,
         description_redacted=redacted,
         client_hash=client,
@@ -145,7 +146,7 @@ def create_quick_report(
 
     return QuickReportResponse(
         report_id=report_id,
-        segment_id=payload.segment_id,
+        segment_id=segment_id,
         category=payload.category,
         verification_state="REPORTED",
     )
@@ -246,9 +247,7 @@ def reject_report(
 
     Same recompute + audit contract as verify.
     """
-    return _set_verification(
-        report_id, VerificationState.REJECTED, "reject", reports, x_admin_key
-    )
+    return _set_verification(report_id, VerificationState.REJECTED, "reject", reports, x_admin_key)
 
 
 def _set_verification(

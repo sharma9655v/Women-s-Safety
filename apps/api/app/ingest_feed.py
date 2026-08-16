@@ -41,8 +41,6 @@ from typing import cast
 from sqlalchemy import text
 
 from app.db import make_engine
-
-from app.config import settings
 from app.evidence.engine import evidence_hash
 from app.evidence.states import OBSERVATION_TYPES, VerificationState
 

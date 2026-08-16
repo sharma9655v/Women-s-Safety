@@ -14,8 +14,6 @@ from typing import Any
 from sqlalchemy import Engine, Row, text
 
 from app.db import make_engine
-
-from app.config import settings
 from app.reports.redact import decrypt_blob, encrypt_blob
 
 logger = logging.getLogger(__name__)
@@ -83,9 +81,7 @@ class MemoryContactStore(ContactStore):
         self._next_id = 1
 
     def list(self, client_id_value: str) -> Sequence[Contact]:
-        return [
-            c for c in self._contacts.values() if c.client_id == client_id_value
-        ]
+        return [c for c in self._contacts.values() if c.client_id == client_id_value]
 
     def create(
         self,
@@ -228,9 +224,7 @@ class PostgresContactStore(ContactStore):
             "relationship, phone_encrypted, role, enabled, created_at"
         )
         with self._engine.begin() as conn:
-            row = conn.execute(
-                text(stmt), params
-            ).one_or_none()
+            row = conn.execute(text(stmt), params).one_or_none()
         return _to_contact(row) if row is not None else None
 
     def _get(self, client_id_value: str, contact_id: int) -> Contact | None:
@@ -247,9 +241,7 @@ class PostgresContactStore(ContactStore):
     def delete(self, client_id_value: str, contact_id: int) -> bool:
         with self._engine.begin() as conn:
             result = conn.execute(
-                text(
-                    "DELETE FROM trusted_contacts WHERE id = :id AND client_id = :cid"
-                ),
+                text("DELETE FROM trusted_contacts WHERE id = :id AND client_id = :cid"),
                 {"id": contact_id, "cid": client_id_value},
             )
         return result.rowcount > 0

@@ -152,11 +152,7 @@ class MemoryNotificationStore(NotificationStore):
         return event
 
     def recent(self, client_id_value: str, limit: int) -> Sequence[NotificationEvent]:
-        return [
-            e
-            for e in self._events
-            if e.client_id == client_id_value
-        ][-limit:][::-1]
+        return [e for e in self._events if e.client_id == client_id_value][-limit:][::-1]
 
 
 class PostgresNotificationStore(NotificationStore):

@@ -4,9 +4,8 @@ import json
 from datetime import datetime
 from functools import lru_cache
 
-from app.db import make_engine
-
 from app.config import settings
+from app.db import make_engine
 from app.evidence.engine import Observation
 from app.evidence.states import VerificationState
 from app.evidence.store import EvidenceStore, MemoryEvidenceStore, PostgresEvidenceStore

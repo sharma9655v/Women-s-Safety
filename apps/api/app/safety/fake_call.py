@@ -1,22 +1,19 @@
 """Fake call sessions store (Feature Group T).
 
 Handles user-controlled scheduled fake calls for distraction purposes."""
+
 from __future__ import annotations
 
-import json
 import logging
 import uuid
-from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
 from functools import lru_cache
 from typing import Any
 
 from sqlalchemy import Engine, Row, text
 
 from app.db import make_engine
-
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -122,9 +119,9 @@ class PostgresFakeCallStore(FakeCallStore):
         with self._engine.begin() as conn:
             row = conn.execute(
                 text(
-                    f"INSERT INTO fake_call_sessions (client_id, caller_name, caller_number, "
-                    f"scheduled_at) VALUES (:cid, :caller_name, :caller_number, :scheduled) "
-                    f"RETURNING *"
+                    "INSERT INTO fake_call_sessions (client_id, caller_name, caller_number, "
+                    "scheduled_at) VALUES (:cid, :caller_name, :caller_number, :scheduled) "
+                    "RETURNING *"
                 ),
                 {
                     "cid": client_id_value,
@@ -139,9 +136,9 @@ class PostgresFakeCallStore(FakeCallStore):
         with self._engine.connect() as conn:
             row = conn.execute(
                 text(
-                    f"SELECT id, client_id, caller_name, caller_number, scheduled_at, "
-                    f"triggered_at, status FROM fake_call_sessions WHERE id = :id AND "
-                    f"client_id = :cid"
+                    "SELECT id, client_id, caller_name, caller_number, scheduled_at, "
+                    "triggered_at, status FROM fake_call_sessions WHERE id = :id AND "
+                    "client_id = :cid"
                 ),
                 {"id": call_id, "cid": client_id_value},
             ).one_or_none()

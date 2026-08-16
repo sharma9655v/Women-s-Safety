@@ -74,7 +74,9 @@ def test_sharing_start_stop_create_events() -> None:
     client.post(f"/api/location-sharing/{sharing['session_id']}/stop", headers=_headers(CLIENT_A))
     types = [
         e["type"]
-        for e in client.get("/api/notifications", headers=_headers(CLIENT_A)).json()["notifications"]
+        for e in client.get("/api/notifications", headers=_headers(CLIENT_A)).json()[
+            "notifications"
+        ]
     ]
     assert types == ["location_sharing_stopped", "location_sharing_started"]
 
@@ -86,19 +88,23 @@ def test_notifications_isolated_between_clients() -> None:
         json={"latitude": 28.61, "longitude": 77.20},
         headers=_headers(CLIENT_A),
     )
-    assert client.get("/api/notifications", headers=_headers(CLIENT_B)).json()["notifications"] == []
+    assert (
+        client.get("/api/notifications", headers=_headers(CLIENT_B)).json()["notifications"] == []
+    )
 
 
 def test_notification_limit_applied() -> None:
     client = make_client()
-    for i in range(5):
+    for _ in range(5):
         sharing = client.post(
             "/api/location-sharing", json={"ttl_s": 60}, headers=_headers(CLIENT_A)
         ).json()
-        client.post(f"/api/location-sharing/{sharing['session_id']}/stop", headers=_headers(CLIENT_A))
-    events = client.get(
-        "/api/notifications?limit=3", headers=_headers(CLIENT_A)
-    ).json()["notifications"]
+        client.post(
+            f"/api/location-sharing/{sharing['session_id']}/stop", headers=_headers(CLIENT_A)
+        )
+    events = client.get("/api/notifications?limit=3", headers=_headers(CLIENT_A)).json()[
+        "notifications"
+    ]
     assert len(events) == 3
 
 

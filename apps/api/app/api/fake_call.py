@@ -8,12 +8,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.config import settings
 from app.auth import require_client_id
 from app.identity import client_hash
 from app.reports.limiter import RateLimiter, get_rate_limiter
 from app.safety import (
-    FakeCallSession,
     FakeCallStore,
     get_fake_call_store,
 )

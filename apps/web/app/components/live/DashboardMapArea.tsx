@@ -1,9 +1,8 @@
 "use client";
 
-import { type MutableRefObject, useRef, useState } from "react";
-import { MapView } from "@/app/components/map/MapView";
+import type { MutableRefObject } from "react";
 import type { RouteMapApi } from "@/app/components/map/MapCanvas";
-import { StatCardStrip } from "./StatCardStrip";
+import { MapView } from "@/app/components/map/MapView";
 import type {
   Facility,
   HeatZone,
@@ -11,6 +10,7 @@ import type {
   LightingObservation,
   RouteCandidate,
 } from "@/lib/types";
+import { StatCardStrip } from "./StatCardStrip";
 
 export interface DashboardMapAreaProps {
   routes: RouteCandidate[];
@@ -65,7 +65,7 @@ export function DashboardMapArea({
           <span>
             Your safety is our priority. We don&apos;t guarantee safety.{" "}
             <a href="/privacy" className="text-primary hover:underline">
-              Learn more
+              Learn more about privacy and safety policies
             </a>
           </span>
         </div>

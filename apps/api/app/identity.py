@@ -25,9 +25,7 @@ MAX_CLIENT_ID_LEN = 64
 def client_id_from_header(x_client_id: str | None = None) -> str:
     """Validate the pseudonymous X-Client-Id header value."""
     if not x_client_id:
-        raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, "X-Client-Id header required"
-        )
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "X-Client-Id header required")
     value = x_client_id.strip().lower()
     if len(value) > MAX_CLIENT_ID_LEN or not _CLIENT_ID_RE.fullmatch(value):
         raise HTTPException(

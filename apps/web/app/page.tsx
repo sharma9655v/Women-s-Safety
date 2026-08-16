@@ -16,22 +16,18 @@ import {
   requestRoutes,
 } from "@/lib/api";
 import type {
-  ConfidenceLevel,
   Facility,
   HeatZone,
   Incident,
   LightingObservation,
   RouteCandidate,
-  SafetyBand,
   SafetyScore,
 } from "@/lib/types";
 
 const DELHI_FALLBACK = { lat: 28.62, lon: 77.24 };
 
 function coordsFor(name: string): { lat: number; lon: number } {
-  const match = PLACE_SUGGESTIONS.find(
-    (p) => p.label.toLowerCase() === name.trim().toLowerCase(),
-  );
+  const match = PLACE_SUGGESTIONS.find((p) => p.label.toLowerCase() === name.trim().toLowerCase());
   return match ? { lat: match.lat, lon: match.lon } : DELHI_FALLBACK;
 }
 
@@ -47,9 +43,9 @@ export default function DashboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [alerts, setAlerts] = useState<Incident[]>([]);
-  const [lighting, setLighting] = useState<
-    (LightingObservation & { lat: number; lon: number })[]
-  >([]);
+  const [lighting, setLighting] = useState<(LightingObservation & { lat: number; lon: number })[]>(
+    [],
+  );
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [heatZones, setHeatZones] = useState<HeatZone[]>([]);
   const apiRef = useRef<RouteMapApi | null>(null);
@@ -133,30 +129,27 @@ export default function DashboardPage() {
   }, []);
 
   /* ---- Route planning ---- */
-  const findRoutes = useCallback(
-    async (origin: string, destination: string, mode: string) => {
-      setRouteLoading(true);
-      try {
-        const o = coordsFor(origin);
-        const d = coordsFor(destination);
-        const planned = await requestRoutes({
-          origin: o,
-          destination: d,
-          mode: MODE_MAP[mode] ?? "walking",
-          safety_preference: "safety",
-        });
-        setRoutes(planned);
-        setSelectedId(planned[0]?.id ?? null);
-        apiRef.current?.flyToRoute(planned[0]?.id ?? null);
-      } catch {
-        setRoutes([]);
-        setSelectedId(null);
-      } finally {
-        setRouteLoading(false);
-      }
-    },
-    [],
-  );
+  const findRoutes = useCallback(async (origin: string, destination: string, mode: string) => {
+    setRouteLoading(true);
+    try {
+      const o = coordsFor(origin);
+      const d = coordsFor(destination);
+      const planned = await requestRoutes({
+        origin: o,
+        destination: d,
+        mode: MODE_MAP[mode] ?? "walking",
+        safety_preference: "safety",
+      });
+      setRoutes(planned);
+      setSelectedId(planned[0]?.id ?? null);
+      apiRef.current?.flyToRoute(planned[0]?.id ?? null);
+    } catch {
+      setRoutes([]);
+      setSelectedId(null);
+    } finally {
+      setRouteLoading(false);
+    }
+  }, []);
 
   /* ---- Quick actions ---- */
   const handleQuickAction = useCallback((actionId: string) => {

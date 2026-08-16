@@ -72,7 +72,7 @@ def test_revoke_token() -> None:
 
 
 def test_token_is_client_scoped() -> None:
-    token = _device_token()
+    _ = _device_token()
     other = _device_token("9f0e1d2c3b4a5968778695a4b3c2d1e0f")
     resp = client.get(
         "/api/contacts",

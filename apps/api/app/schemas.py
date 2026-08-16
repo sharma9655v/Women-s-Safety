@@ -224,6 +224,7 @@ class GeocodeResponse(BaseModel):
 
 # --- Phase 9: personal safety (contacts / emergency / sharing / notifications)
 
+
 class TrustedContact(BaseModel):
     """A trusted contact. The phone number is returned only to the owning
     client and is encrypted at rest."""
@@ -329,15 +330,14 @@ class NotificationListResponse(BaseModel):
 
 # --- Phase 10: guardian journeys (check-ins, escalation, deviation)
 
+
 class GuardianCreateRequest(BaseModel):
     """Start a guardian journey. Geometry is the planned route the owner
     chose (used only to detect deviation), never invented data."""
 
     guardian_contact_ids: list[int] = Field(default_factory=list, max_length=20)
     expected_arrival_at: datetime | None = None
-    planned_geometry: list[list[float]] | None = Field(
-        default=None, max_length=20000
-    )
+    planned_geometry: list[list[float]] | None = Field(default=None, max_length=20000)
     checkin_grace_s: int = Field(default=300, ge=60, le=7200)
 
     @field_validator("planned_geometry")
@@ -430,7 +430,10 @@ class JourneyEndResponse(BaseModel):
 
 
 class AlertCreate(BaseModel):
-    category: str = Field(..., pattern="^(recent_verified_incident|lighting_issue|road_hazard|blocked_sidewalk|route_obstruction|weather_hazard|emergency_event|public_safety_notice)$")
+    category: str = Field(
+        ...,
+        pattern="^(recent_verified_incident|lighting_issue|road_hazard|blocked_sidewalk|route_obstruction|weather_hazard|emergency_event|public_safety_notice)$",
+    )
     severity: str = Field(default="moderate", pattern="^(low|moderate|high|critical)$")
     lat: float = Field(ge=-90, le=90)
     lon: float = Field(ge=-180, le=180)
@@ -453,6 +456,7 @@ class AlertResponse(BaseModel):
     observed_at: str
     expires_at: str | None
     created_at: str
+
 
 class AlertListResponse(BaseModel):
     alerts: list[AlertResponse]
@@ -609,9 +613,7 @@ class PrivacySettingsUpdate(BaseModel):
     """Partial update of privacy-center settings."""
 
     voice_guidance_enabled: bool | None = None
-    voice_language: str | None = Field(
-        default=None, pattern="^(en|hi)$", description="en or hi"
-    )
+    voice_language: str | None = Field(default=None, pattern="^(en|hi)$", description="en or hi")
     discreet_mode_enabled: bool | None = None
 
 

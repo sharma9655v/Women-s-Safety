@@ -7,12 +7,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from app.config import settings
 from app.auth import require_client_id
 from app.identity import client_hash
 from app.reports.limiter import RateLimiter, get_rate_limiter
 from app.safety import (
-    DiscreetModeSettings,
     DiscreetModeSettingsStore,
     get_discreet_mode_settings_store,
 )
@@ -45,6 +43,7 @@ def get_discreet_mode(
     settings = store.get_settings(cid)
     if settings is None:
         from app.schemas import DiscreetModeSettingsResponse as _Resp
+
         return _Resp(
             client_id=cid,
             enabled=False,

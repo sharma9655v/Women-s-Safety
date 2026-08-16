@@ -1,10 +1,11 @@
 """Voice guidance sessions store (Feature Group U).
 
 Handles voice guidance settings and session tracking for navigation voice prompts."""
+
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
@@ -13,8 +14,6 @@ from typing import Any
 from sqlalchemy import Engine, Row, text
 
 from app.db import make_engine
-
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -137,9 +136,9 @@ class PostgresVoiceGuidanceStore(VoiceGuidanceStore):
         with self._engine.begin() as conn:
             row = conn.execute(
                 text(
-                    f"INSERT INTO voice_guidance_sessions (client_id, route_session_id, "
-                    f"language, active, started_at) VALUES (:cid, :route_sid, :lang, "
-                    f":active, now()) RETURNING *"
+                    "INSERT INTO voice_guidance_sessions (client_id, route_session_id, "
+                    "language, active, started_at) VALUES (:cid, :route_sid, :lang, "
+                    ":active, now()) RETURNING *"
                 ),
                 {
                     "cid": client_id_value,
@@ -154,8 +153,8 @@ class PostgresVoiceGuidanceStore(VoiceGuidanceStore):
         with self._engine.begin() as conn:
             row = conn.execute(
                 text(
-                    f"UPDATE voice_guidance_sessions SET active = FALSE, ended_at = now() "
-                    f"WHERE client_id = :cid AND active = TRUE RETURNING *"
+                    "UPDATE voice_guidance_sessions SET active = FALSE, ended_at = now() "
+                    "WHERE client_id = :cid AND active = TRUE RETURNING *"
                 ),
                 {"cid": client_id_value},
             ).one_or_none()
@@ -167,9 +166,9 @@ class PostgresVoiceGuidanceStore(VoiceGuidanceStore):
         with self._engine.connect() as conn:
             row = conn.execute(
                 text(
-                    f"SELECT id, client_id, route_session_id, language, active, "
-                    f"started_at, ended_at FROM voice_guidance_sessions WHERE client_id = :cid "
-                    f"ORDER BY started_at DESC LIMIT 1"
+                    "SELECT id, client_id, route_session_id, language, active, "
+                    "started_at, ended_at FROM voice_guidance_sessions WHERE client_id = :cid "
+                    "ORDER BY started_at DESC LIMIT 1"
                 ),
                 {"cid": client_id_value},
             ).one_or_none()

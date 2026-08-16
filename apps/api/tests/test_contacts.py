@@ -91,10 +91,16 @@ def test_cross_client_isolation() -> None:
     client = make_client()
     created = client.post("/api/contacts", json=_contact(), headers=_headers(CLIENT_A)).json()
     assert client.get("/api/contacts", headers=_headers(CLIENT_B)).json()["contacts"] == []
-    assert client.put(
-        f"/api/contacts/{created['id']}", json={"name": "X"}, headers=_headers(CLIENT_B)
-    ).status_code == 404
-    assert client.delete(f"/api/contacts/{created['id']}", headers=_headers(CLIENT_B)).status_code == 404
+    assert (
+        client.put(
+            f"/api/contacts/{created['id']}", json={"name": "X"}, headers=_headers(CLIENT_B)
+        ).status_code
+        == 404
+    )
+    assert (
+        client.delete(f"/api/contacts/{created['id']}", headers=_headers(CLIENT_B)).status_code
+        == 404
+    )
 
 
 def test_invalid_contact_payload_rejected() -> None:

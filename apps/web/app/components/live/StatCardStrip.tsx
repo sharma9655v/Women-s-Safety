@@ -49,12 +49,7 @@ export function StatCardStrip({
           {scoreLoading ? (
             <div className="skeleton-shimmer" style={{ width: 60, height: 60, borderRadius: 30 }} />
           ) : (
-            <Gauge
-              value={safetyScore ?? 0}
-              size={60}
-              strokeWidth={5}
-              label={`/ 100`}
-            />
+            <Gauge value={safetyScore ?? 0} size={60} strokeWidth={5} label={`/ 100`} />
           )}
           <div>
             <p className="stat-card-label">Safety Score (Area)</p>
@@ -62,9 +57,7 @@ export function StatCardStrip({
               {bandLabel}
             </p>
             <p className="stat-card-sublabel">
-              {confidenceLevel
-                ? "Based on recent evidence"
-                : "Estimate from available data"}
+              {confidenceLevel ? "Based on recent evidence" : "Estimate from available data"}
             </p>
           </div>
         </div>

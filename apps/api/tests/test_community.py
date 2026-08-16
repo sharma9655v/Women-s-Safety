@@ -95,9 +95,7 @@ def test_admin_verify_reject_requires_key() -> None:
     client = make_client()
     created = _post(client).json()
     assert (
-        client.post(
-            "/api/admin/community/{}/verify".format(created["id"]), headers={}
-        ).status_code
+        client.post("/api/admin/community/{}/verify".format(created["id"]), headers={}).status_code
         == 403
     )
 

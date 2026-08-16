@@ -2,21 +2,17 @@
 
 Handles per-client safety preference configuration that influences routing
 decisions but never bypasses the core safety model."""
+
 from __future__ import annotations
 
-import json
 import logging
-from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Any
 
 from sqlalchemy import Engine, Row, text
 
 from app.db import make_engine
-
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -167,7 +163,8 @@ class PostgresSafetyPreferencesStore(SafetyPreferencesStore):
         with self._engine.begin() as conn:
             conn.execute(
                 text(
-                    "INSERT INTO safety_preferences (client_id, prefer_better_lit, prefer_main_roads, "
+                    "INSERT INTO safety_preferences (client_id, "
+                    "prefer_better_lit, prefer_main_roads, "
                     "prefer_near_emergency, avoid_known_hazards, avoid_isolated_roads, "
                     "minimize_walking_time, default_profile, discreet_mode_enabled, "
                     "voice_guidance_enabled, voice_language, updated_at) "

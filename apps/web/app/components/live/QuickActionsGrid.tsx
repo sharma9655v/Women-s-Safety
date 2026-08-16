@@ -29,11 +29,7 @@ const ACTIONS = [
   },
 ];
 
-export function QuickActionsGrid({
-  onAction,
-}: {
-  onAction: (actionId: string) => void;
-}) {
+export function QuickActionsGrid({ onAction }: { onAction: (actionId: string) => void }) {
   return (
     <div className="quick-actions-grid">
       {ACTIONS.map((action) => {

@@ -62,9 +62,7 @@ def _guardian_location_limiter() -> RateLimiter:
 
 def _require_limit(limiter: RateLimiter, cid: str) -> None:
     if not limiter.allow(client_hash(cid)):
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS, "Too many journey check-ins"
-        )
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many journey check-ins")
 
 
 def _guardian_response(session: GuardianSession) -> GuardianSessionResponse:
@@ -80,9 +78,7 @@ def _guardian_response(session: GuardianSession) -> GuardianSessionResponse:
         else None,
         checkin_deadline=session.checkin_deadline.isoformat(),
         checkin_grace_s=session.checkin_grace_s,
-        last_checkin_at=session.last_checkin_at.isoformat()
-        if session.last_checkin_at
-        else None,
+        last_checkin_at=session.last_checkin_at.isoformat() if session.last_checkin_at else None,
         latitude=session.latitude,
         longitude=session.longitude,
         last_known_at=session.last_known_at.isoformat() if session.last_known_at else None,
@@ -222,9 +218,7 @@ def update_guardian_location(
     cid: Annotated[str, Depends(require_client_id)],
 ) -> GuardianSessionResponse:
     if not limiter.allow(cid):
-        raise HTTPException(
-            status.HTTP_429_TOO_MANY_REQUESTS, "Too many guardian location updates"
-        )
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many guardian location updates")
     session, events = store.update_guardian_location(
         cid, session_id, payload.latitude, payload.longitude
     )
@@ -296,9 +290,7 @@ def _journey_checkin_response(session: JourneyCheckinSession) -> JourneyCheckinR
         destination_lat=session.destination_lat,
         destination_lon=session.destination_lon,
         expected_arrival_at=(
-            session.expected_arrival_at.isoformat()
-            if session.expected_arrival_at
-            else None
+            session.expected_arrival_at.isoformat() if session.expected_arrival_at else None
         ),
         checkin_interval_s=session.checkin_interval_s,
         checkin_grace_s=session.checkin_grace_s,
@@ -399,7 +391,10 @@ def end_journey_checkin(
         notifications.record(
             cid,
             "journey_completed",
-            {"session_id": session.id, "ended_at": session.ended_at.isoformat()},
+            {
+                "session_id": session.id,
+                "ended_at": session.ended_at.isoformat() if session.ended_at else "",
+            },
         )
     return JourneyEndResponse(
         session_id=session.id,

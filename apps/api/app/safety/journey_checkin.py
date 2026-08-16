@@ -9,10 +9,13 @@ Rules (mirrored by the API layer):
     once per stage (notified_stage watermark).
   - Trusted contacts can be designated but no automatic emergency is triggered.
   - Sessions are readable only by their owning client_id."""
+
 from __future__ import annotations
 
 import json
 import logging
+import math
+import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -22,9 +25,6 @@ from typing import Any
 from sqlalchemy import Engine, Row, text
 
 from app.db import make_engine
-
-from app.config import settings
-
 
 logger = logging.getLogger(__name__)
 
@@ -311,10 +311,10 @@ class PostgresJourneyCheckinStore(JourneyCheckinStore):
         with self._engine.begin() as conn:
             row = conn.execute(
                 text(
-                    f"INSERT INTO journey_checkins (client_id, destination_name, destination_lat, "
-                    f"destination_lon, expected_arrival_at, checkin_interval_s, checkin_grace_s, "
-                    f"contact_ids) VALUES (:cid, :dest_name, :dest_lat, :dest_lon, :arrival, "
-                    f":interval, :grace, :ids) RETURNING *"
+                    "INSERT INTO journey_checkins (client_id, destination_name, destination_lat, "
+                    "destination_lon, expected_arrival_at, checkin_interval_s, checkin_grace_s, "
+                    "contact_ids) VALUES (:cid, :dest_name, :dest_lat, :dest_lon, :arrival, "
+                    ":interval, :grace, :ids) RETURNING *"
                 ),
                 {
                     "cid": client_id_value,
@@ -333,7 +333,9 @@ class PostgresJourneyCheckinStore(JourneyCheckinStore):
         with self._engine.connect() as conn:
             row = conn.execute(
                 text(
-                    f"SELECT * FROM journey_checkins WHERE client_id = :cid AND status IN ('ACTIVE', 'ESCALATED') ORDER BY started_at DESC LIMIT 1"
+                    "SELECT * FROM journey_checkins WHERE client_id = :cid "
+                    "AND status IN ('ACTIVE', 'ESCALATED') "
+                    "ORDER BY started_at DESC LIMIT 1"
                 ),
                 {"cid": client_id_value},
             ).one_or_none()
@@ -347,11 +349,11 @@ class PostgresJourneyCheckinStore(JourneyCheckinStore):
         with self._engine.begin() as conn:
             row = conn.execute(
                 text(
-                    f"UPDATE journey_checkins SET last_checkin_at = now(), "
-                    f"next_checkin_at = now() + checkin_interval_s * interval '1 second', "
-                    f"escalation_stage = 0, notified_stage = 0 "
-                    f"WHERE id = :id AND client_id = :cid AND status IN ('ACTIVE', 'ESCALATED') "
-                    f"RETURNING *"
+                    "UPDATE journey_checkins SET last_checkin_at = now(), "
+                    "next_checkin_at = now() + checkin_interval_s * interval '1 second', "
+                    "escalation_stage = 0, notified_stage = 0 "
+                    "WHERE id = :id AND client_id = :cid AND status IN ('ACTIVE', 'ESCALATED') "
+                    "RETURNING *"
                 ),
                 {"id": session_id, "cid": client_id_value},
             ).one_or_none()
@@ -366,9 +368,9 @@ class PostgresJourneyCheckinStore(JourneyCheckinStore):
         with self._engine.begin() as conn:
             row = conn.execute(
                 text(
-                    f"UPDATE journey_checkins SET status = :status, ended_at = now(), "
-                    f"end_reason = :reason WHERE id = :id AND client_id = :cid AND "
-                    f"status IN ('ACTIVE', 'ESCALATED') RETURNING *"
+                    "UPDATE journey_checkins SET status = :status, ended_at = now(), "
+                    "end_reason = :reason WHERE id = :id AND client_id = :cid AND "
+                    "status IN ('ACTIVE', 'ESCALATED') RETURNING *"
                 ),
                 {"id": session_id, "cid": client_id_value, "status": status, "reason": reason},
             ).one_or_none()

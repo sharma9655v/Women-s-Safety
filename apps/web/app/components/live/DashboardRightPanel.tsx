@@ -14,9 +14,9 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { QuickActionsGrid } from "./QuickActionsGrid";
-import { LiveStatusSection } from "./LiveStatusSection";
 import type { ConfidenceLevel, SafetyBand, SafetyPreference } from "@/lib/types";
+import { LiveStatusSection } from "./LiveStatusSection";
+import { QuickActionsGrid } from "./QuickActionsGrid";
 
 /* ------------------------------------------------------------------ */
 /* Transport mode selector (inline, matching reference design)         */
@@ -65,37 +65,34 @@ function TransportModePicker({
 /* Safety preference selector (matching reference design)              */
 /* ------------------------------------------------------------------ */
 
-const PREFERENCES: { id: SafetyPreference; label: string; detail: string; icon: typeof Shield }[] = [
-  {
-    id: "safety",
-    label: "Safety Priority",
-    detail: "Estimated lower risk, may take longer",
-    icon: Shield,
-  },
-  {
-    id: "balanced",
-    label: "Balanced",
-    detail: "Best balance of estimated safety & time",
-    icon: RouteIcon,
-  },
-  {
-    id: "time",
-    label: "Time Priority",
-    detail: "Faster but may have higher estimated risk",
-    icon: Footprints,
-  },
-];
+const PREFERENCES: { id: SafetyPreference; label: string; detail: string; icon: typeof Shield }[] =
+  [
+    {
+      id: "safety",
+      label: "Safety Priority",
+      detail: "Estimated lower risk, may take longer",
+      icon: Shield,
+    },
+    {
+      id: "balanced",
+      label: "Balanced",
+      detail: "Best balance of estimated safety & time",
+      icon: RouteIcon,
+    },
+    {
+      id: "time",
+      label: "Time Priority",
+      detail: "Faster but may have higher estimated risk",
+      icon: Footprints,
+    },
+  ];
 
 /* ------------------------------------------------------------------ */
 /* Dashboard Right Panel                                               */
 /* ------------------------------------------------------------------ */
 
 export interface DashboardRightPanelProps {
-  onFindRoutes: (
-    origin: string,
-    destination: string,
-    mode: string,
-  ) => void;
+  onFindRoutes: (origin: string, destination: string, mode: string) => void;
   onQuickAction: (actionId: string) => void;
   areaRiskBand: SafetyBand | null;
   areaConfidence: ConfidenceLevel | null;
@@ -126,11 +123,11 @@ export function DashboardRightPanel({
     <aside className="dashboard-right-panel" aria-label="Route planning and quick actions">
       {/* Tabs */}
       <div className="dashboard-tabs">
-        {([
+        {[
           { id: "route" as const, icon: RouteIcon, label: "Route" },
           { id: "share" as const, icon: Share2, label: "Share" },
           { id: "guardian" as const, icon: ShieldCheck, label: "Guardian" },
-        ]).map((tab) => {
+        ].map((tab) => {
           const Icon = tab.icon;
           return (
             <button

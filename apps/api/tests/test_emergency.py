@@ -96,9 +96,7 @@ def test_second_client_can_have_own_session() -> None:
 
 def test_update_emergency_location() -> None:
     client = make_client()
-    created = client.post(
-        "/api/emergency/sessions", json=_sos(), headers=_headers(CLIENT_A)
-    ).json()
+    created = client.post("/api/emergency/sessions", json=_sos(), headers=_headers(CLIENT_A)).json()
     resp = client.post(
         f"/api/emergency/sessions/{created['session_id']}/location",
         json={"latitude": 28.62, "longitude": 77.22},
@@ -112,9 +110,7 @@ def test_update_emergency_location() -> None:
 
 def test_end_emergency_session() -> None:
     client = make_client()
-    created = client.post(
-        "/api/emergency/sessions", json=_sos(), headers=_headers(CLIENT_A)
-    ).json()
+    created = client.post("/api/emergency/sessions", json=_sos(), headers=_headers(CLIENT_A)).json()
     resp = client.post(
         f"/api/emergency/sessions/{created['session_id']}/end",
         json={"reason": "safe"},
@@ -123,17 +119,12 @@ def test_end_emergency_session() -> None:
     assert resp.status_code == 200
     assert resp.json()["status"] == "ENDED"
     assert resp.json()["end_reason"] == "safe"
-    assert (
-        client.get("/api/emergency/sessions/active", headers=_headers(CLIENT_A)).json()
-        is None
-    )
+    assert client.get("/api/emergency/sessions/active", headers=_headers(CLIENT_A)).json() is None
 
 
 def test_ending_ended_session_404() -> None:
     client = make_client()
-    created = client.post(
-        "/api/emergency/sessions", json=_sos(), headers=_headers(CLIENT_A)
-    ).json()
+    created = client.post("/api/emergency/sessions", json=_sos(), headers=_headers(CLIENT_A)).json()
     client.post(
         f"/api/emergency/sessions/{created['session_id']}/end",
         json={"reason": "safe"},
@@ -149,9 +140,7 @@ def test_ending_ended_session_404() -> None:
 
 def test_cross_client_session_404() -> None:
     client = make_client()
-    created = client.post(
-        "/api/emergency/sessions", json=_sos(), headers=_headers(CLIENT_A)
-    ).json()
+    created = client.post("/api/emergency/sessions", json=_sos(), headers=_headers(CLIENT_A)).json()
     resp = client.post(
         f"/api/emergency/sessions/{created['session_id']}/end",
         json={"reason": "safe"},

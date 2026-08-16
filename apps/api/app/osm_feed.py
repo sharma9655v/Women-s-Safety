@@ -61,7 +61,10 @@ out tags;
 def fetch_osm(south: float, west: float, north: float, east: float) -> list[dict[str, Any]]:
     """Query Overpass (with mirror fallback). Returns element dicts."""
     query = QUERY.format(
-        s=south, w=west, n=north, e=east,
+        s=south,
+        w=west,
+        n=north,
+        e=east,
         surfaces="|".join(UNPAVED_SURFACES),
     )
     body = urllib.parse.urlencode({"data": query}).encode("utf-8")
@@ -145,7 +148,6 @@ def load_way_segment_map(way_ids: set[int]) -> dict[int, list[int]]:
     known, so the fetch fails honestly instead of emitting wrong ids."""
     from sqlalchemy import text
 
-    from app.config import settings
     from app.db import make_engine
 
     engine = make_engine()
@@ -173,9 +175,7 @@ def main() -> int:
     print(f"Fetching Delhi OSM from Overpass ({observed_at.isoformat()}) ...")
     elements = fetch_osm(*DELHI_BBOX)
     way_ids = {
-        int(e["id"])
-        for e in elements
-        if e.get("type") == "way" and isinstance(e.get("id"), int)
+        int(e["id"]) for e in elements if e.get("type") == "way" and isinstance(e.get("id"), int)
     }
     print(f"Fetched {len(elements)} ways; resolving {len(way_ids)} to graph segments ...")
     segment_map = load_way_segment_map(way_ids)

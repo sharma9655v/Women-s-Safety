@@ -5,7 +5,6 @@ from datetime import datetime
 from geoalchemy2 import Geometry
 from sqlalchemy import (
     JSON,
-    JSONB,
     UUID,
     BigInteger,
     Boolean,
@@ -53,7 +52,9 @@ class Facility(Base):
     )
     operational_status: Mapped[str | None] = mapped_column(Text)
     distance_m: Mapped[float | None] = mapped_column(Float)
-    updated_at = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
     dataset_version: Mapped[str] = mapped_column(Text, nullable=False)
 
 
@@ -131,7 +132,7 @@ class JourneyCheckin(Base):
     checkin_grace_s = mapped_column(Integer, nullable=False, default=300)
     last_checkin_at = mapped_column(DateTime(timezone=True))
     next_checkin_at = mapped_column(DateTime(timezone=True))
-    contact_ids = mapped_column(JSONB, nullable=False, default="[]")
+    contact_ids = mapped_column(JSON, nullable=False, default=list)
     escalation_stage = mapped_column(Integer, nullable=False, default=0)
     notified_stage = mapped_column(Integer, nullable=False, default=0)
     latitude = mapped_column(Float, nullable=True)
@@ -186,7 +187,9 @@ class SafetyPreferences(Base):
     discreet_mode_enabled = mapped_column(Boolean, nullable=False, default=False)
     voice_guidance_enabled = mapped_column(Boolean, nullable=False, default=True)
     voice_language = mapped_column(Text, nullable=False, default="en")
-    updated_at = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class DiscreetModeSettings(Base):
@@ -198,7 +201,9 @@ class DiscreetModeSettings(Base):
     exit_to_neutral_app = mapped_column(Boolean, nullable=False, default=True)
     neutral_app_label = mapped_column(Text, nullable=False, default="Weather")
     neutral_app_icon = mapped_column(Text, nullable=False, default="cloud-sun")
-    updated_at = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    updated_at = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class FakeCallSession(Base):

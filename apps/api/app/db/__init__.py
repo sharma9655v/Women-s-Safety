@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from sqlalchemy import create_engine
+from sqlalchemy import Engine, create_engine
 
 from app.config import settings
 
@@ -10,9 +8,9 @@ from app.config import settings
 CONNECT_TIMEOUT_S = 5
 
 
-def make_engine() -> object:
+def make_engine() -> Engine:
     """Create the PostGIS engine with a bounded connect timeout."""
     return create_engine(
-        settings.database_url,
-        connect_args={"connect_timeout": CONNECT_TIMEOUT_S},
+        settings.database_url or "sqlite:///:memory:",
+        connect_args={"connect_timeout": CONNECT_TIMEOUT_S} if settings.database_url else {},
     )

@@ -38,7 +38,8 @@ def test_fake_call_requires_client_id() -> None:
 def test_create_fake_call_without_scheduled_at_defaults_to_now() -> None:
     client = make_client()
     resp = client.post(
-        "/api/fake-call", json={"caller_name": "Mom", "caller_number": "9876543210"},
+        "/api/fake-call",
+        json={"caller_name": "Mom", "caller_number": "9876543210"},
         headers=_headers(CLIENT_A),
     )
     assert resp.status_code == 201
@@ -81,17 +82,16 @@ def test_foreign_client_cannot_read_call() -> None:
     created = client.post(
         "/api/fake-call", json={"caller_name": "Mom"}, headers=_headers(CLIENT_A)
     ).json()
-    resp = client.get(
-        f"/api/fake-call/{created['id']}", headers=_headers("b" * 32)
-    )
+    resp = client.get(f"/api/fake-call/{created['id']}", headers=_headers("b" * 32))
     assert resp.status_code == 404
 
 
 def test_validation() -> None:
     client = make_client()
     assert (
-        client.post("/api/fake-call", json={"caller_name": ""}, headers=_headers(CLIENT_A))
-        .status_code
+        client.post(
+            "/api/fake-call", json={"caller_name": ""}, headers=_headers(CLIENT_A)
+        ).status_code
         == 422
     )
 
@@ -100,12 +100,14 @@ def test_rate_limited() -> None:
     client = make_client(limit=2)
     for _ in range(2):
         assert (
-            client.post("/api/fake-call", json={"caller_name": "Mom"}, headers=_headers(CLIENT_A))
-            .status_code
+            client.post(
+                "/api/fake-call", json={"caller_name": "Mom"}, headers=_headers(CLIENT_A)
+            ).status_code
             == 201
         )
     assert (
-        client.post("/api/fake-call", json={"caller_name": "Mom"}, headers=_headers(CLIENT_A))
-        .status_code
+        client.post(
+            "/api/fake-call", json={"caller_name": "Mom"}, headers=_headers(CLIENT_A)
+        ).status_code
         == 429
     )

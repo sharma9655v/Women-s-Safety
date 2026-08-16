@@ -68,9 +68,7 @@ def revoke_device_session(
     """Revoke the presented bearer token (device logout)."""
     auth = request.headers.get("authorization", "")
     if not auth.lower().startswith("bearer "):
-        raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, "Missing bearer token"
-        )
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Missing bearer token")
     token = auth[7:].strip()
     store.revoke(token)
     return RevokeSessionResponse(revoked=True)

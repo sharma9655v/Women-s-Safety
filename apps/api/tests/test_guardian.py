@@ -207,9 +207,7 @@ def test_checkin_resets_deadline(monkeypatch) -> None:
     # A check-in supersedes the (stale) expected arrival: the new deadline is
     # grace seconds after the check-in itself.
     new_deadline = resp.json()["checkin_deadline"]
-    assert datetime.fromisoformat(new_deadline) == FIXED_NOW + timedelta(
-        minutes=35, seconds=300
-    )
+    assert datetime.fromisoformat(new_deadline) == FIXED_NOW + timedelta(minutes=35, seconds=300)
 
 
 def test_escalation_stage_1_then_2_exactly_once(monkeypatch) -> None:
@@ -230,16 +228,22 @@ def test_escalation_stage_1_then_2_exactly_once(monkeypatch) -> None:
     fake["now"] = FIXED_NOW + timedelta(minutes=35)
     active = client.get("/api/guardian/sessions/active", headers=_headers(CLIENT_A)).json()
     assert active["escalation_stage"] == 1
-    types = [e["type"] for e in client.get(
-        "/api/notifications", headers=_headers(CLIENT_A)
-    ).json()["notifications"]]
+    types = [
+        e["type"]
+        for e in client.get("/api/notifications", headers=_headers(CLIENT_A)).json()[
+            "notifications"
+        ]
+    ]
     assert types.count("checkin_missed") == 1
 
     # Repeated reads do not re-emit.
     client.get("/api/guardian/sessions/active", headers=_headers(CLIENT_A))
-    types = [e["type"] for e in client.get(
-        "/api/notifications", headers=_headers(CLIENT_A)
-    ).json()["notifications"]]
+    types = [
+        e["type"]
+        for e in client.get("/api/notifications", headers=_headers(CLIENT_A)).json()[
+            "notifications"
+        ]
+    ]
     assert types.count("checkin_missed") == 1
 
     # Stage 2: deadline (12:35) + escalation delay (15 min) = 12:50.
@@ -247,9 +251,12 @@ def test_escalation_stage_1_then_2_exactly_once(monkeypatch) -> None:
     active = client.get("/api/guardian/sessions/active", headers=_headers(CLIENT_A)).json()
     assert active["escalation_stage"] == 2
     assert active["status"] == "ESCALATED"
-    types = [e["type"] for e in client.get(
-        "/api/notifications", headers=_headers(CLIENT_A)
-    ).json()["notifications"]]
+    types = [
+        e["type"]
+        for e in client.get("/api/notifications", headers=_headers(CLIENT_A)).json()[
+            "notifications"
+        ]
+    ]
     assert types.count("checkin_escalated") == 1
 
 
@@ -289,9 +296,12 @@ def test_deviation_detected_and_notified_once() -> None:
     assert resp.status_code == 200
     assert resp.json()["deviation_detected"] is True
     assert resp.json()["first_deviation_at"] is not None
-    types = [e["type"] for e in client.get(
-        "/api/notifications", headers=_headers(CLIENT_A)
-    ).json()["notifications"]]
+    types = [
+        e["type"]
+        for e in client.get("/api/notifications", headers=_headers(CLIENT_A)).json()[
+            "notifications"
+        ]
+    ]
     assert types.count("route_changed") == 1
 
     # Second update while still off-route: no duplicate notification.
@@ -300,9 +310,12 @@ def test_deviation_detected_and_notified_once() -> None:
         json={"latitude": 28.63, "longitude": 77.05},
         headers=_headers(CLIENT_A),
     )
-    types = [e["type"] for e in client.get(
-        "/api/notifications", headers=_headers(CLIENT_A)
-    ).json()["notifications"]]
+    types = [
+        e["type"]
+        for e in client.get("/api/notifications", headers=_headers(CLIENT_A)).json()[
+            "notifications"
+        ]
+    ]
     assert types.count("route_changed") == 1
 
 
@@ -321,7 +334,10 @@ def test_on_route_no_deviation() -> None:
 def test_guardian_start_records_notification() -> None:
     client = make_client()
     _create(client)
-    types = [e["type"] for e in client.get(
-        "/api/notifications", headers=_headers(CLIENT_A)
-    ).json()["notifications"]]
+    types = [
+        e["type"]
+        for e in client.get("/api/notifications", headers=_headers(CLIENT_A)).json()[
+            "notifications"
+        ]
+    ]
     assert "guardian_started" in types

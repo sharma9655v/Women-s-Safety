@@ -1,20 +1,17 @@
 """Discreet mode settings store (Feature Group S).
 
 Handles per-client discreet mode configuration for safety function access."""
+
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Any
 
 from sqlalchemy import Engine, Row, text
 
 from app.db import make_engine
-
-from app.config import settings
 
 logger = logging.getLogger(__name__)
 

@@ -184,6 +184,7 @@ def test_incidents_include_road_hazard_category():
 
 def test_route_request_accepts_hour_ist_override():
     import httpx
+
     from app.api.routes import get_osrm
     from app.evidence import MemoryEvidenceStore, get_evidence_store
     from app.facilities import MemoryFacilityStore
@@ -218,5 +219,3 @@ def test_route_request_accepts_hour_ist_override():
         app.dependency_overrides.pop(get_segments_store, None)
         app.dependency_overrides.pop(get_evidence_store, None)
         app.dependency_overrides.pop(get_facilities_store, None)
-
-
