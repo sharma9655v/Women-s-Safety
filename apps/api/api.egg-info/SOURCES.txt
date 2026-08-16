@@ -9,6 +9,7 @@ app/__init__.py
 app/config.py
 app/main.py
 app/schemas.py
+app/seed_demo.py
 app/api/__init__.py
 app/api/evidence.py
 app/api/routes.py
@@ -38,6 +39,8 @@ tests/test_evidence.py
 tests/test_facilities.py
 tests/test_health.py
 tests/test_matcher.py
+tests/test_models.py
+tests/test_overlays.py
 tests/test_reports.py
 tests/test_risk.py
 tests/test_routes.py

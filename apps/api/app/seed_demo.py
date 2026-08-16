@@ -144,19 +144,23 @@ def main() -> int:
     # produces identical evidence_hashes (ON CONFLICT DO NOTHING) and is fully
     # idempotent, while fresh/aging/stale tiers still reflect real time.
     now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
-    engine: Engine | None = make_engine()
-
-    try:
-        assert engine is not None
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
-    except Exception as exc:
-        if args.snapshot_only:
-            print(f"PostGIS unreachable ({exc}); skipping DB insert.")
-            engine = None
-        else:
-            print(f"ERROR: PostGIS unreachable: {exc}")
-            return 2
+    engine: Engine | None = None
+    if settings.database_url:
+        try:
+            engine = make_engine()  # type: ignore[assignment]
+            assert engine is not None
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+        except Exception as exc:
+            if args.snapshot_only:
+                print(f"PostGIS unreachable ({exc}); skipping DB insert.")
+                engine = None
+            else:
+                print(f"ERROR: PostGIS unreachable: {exc}")
+                return 2
+    elif not args.snapshot_only:
+        print("ERROR: DATABASE_URL not set and not --snapshot-only")
+        return 2
 
     total = 0
     snapshot_items: list[dict[str, object]] = []
@@ -234,6 +238,7 @@ def main() -> int:
         "observations": snapshot_items,
     }
     snapshot_path = REPO_ROOT / "data" / "processed" / "demo-evidence.json"
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
     with open(snapshot_path, "w", encoding="utf-8") as fh:
         json.dump(snapshot, fh, indent=1)
 
@@ -247,6 +252,7 @@ def main() -> int:
         "sha256": hashlib.sha256(json.dumps(snapshot, sort_keys=True).encode()).hexdigest(),
     }
     manifest_path = REPO_ROOT / "data" / "versions" / f"demo-evidence-{now:%Y%m%dT%H%M%S}.json"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
     with open(manifest_path, "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, indent=1)
 

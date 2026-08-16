@@ -49,7 +49,11 @@ function ServiceWorkerScript() {
   );
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   // suppressHydrationWarning: the no-FOUC ThemeInitScript sets data-theme
   // before hydration; the attribute is styling state, not markup.
   return (

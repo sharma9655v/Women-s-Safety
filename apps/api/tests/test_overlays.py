@@ -183,14 +183,40 @@ def test_incidents_include_road_hazard_category():
 
 
 def test_route_request_accepts_hour_ist_override():
+    import httpx
+    from app.api.routes import get_osrm
+    from app.evidence import MemoryEvidenceStore, get_evidence_store
+    from app.facilities import MemoryFacilityStore
+    from app.facilities.registry import get_facilities_store
+    from app.routing import OsrmClient
+    from app.segments import get_segments_store
+    from app.segments.store import MemorySegmentStore
+
     _override_store([])
-    resp = client.post(
-        "/api/routes",
-        json={
-            "origin": {"lat": 28.6315, "lon": 77.2167},
-            "destination": {"lat": 28.6129, "lon": 77.2295},
-            "mode": "walking",
-            "hour_ist": 22,
-        },
+    transport = httpx.MockTransport(
+        lambda req: httpx.Response(
+            503, json={"code": "Unavailable", "message": "OSRM mock unavailable"}
+        )
     )
-    assert resp.status_code in (200, 502, 503)
+    app.dependency_overrides[get_osrm] = lambda: OsrmClient("http://osrm.test", transport=transport)
+    app.dependency_overrides[get_segments_store] = lambda: MemorySegmentStore.empty()
+    app.dependency_overrides[get_evidence_store] = lambda: MemoryEvidenceStore()
+    app.dependency_overrides[get_facilities_store] = lambda: MemoryFacilityStore([])
+    try:
+        resp = client.post(
+            "/api/routes",
+            json={
+                "origin": {"lat": 28.6315, "lon": 77.2167},
+                "destination": {"lat": 28.6129, "lon": 77.2295},
+                "mode": "walking",
+                "hour_ist": 22,
+            },
+        )
+        assert resp.status_code in (200, 502, 503)
+    finally:
+        app.dependency_overrides.pop(get_osrm, None)
+        app.dependency_overrides.pop(get_segments_store, None)
+        app.dependency_overrides.pop(get_evidence_store, None)
+        app.dependency_overrides.pop(get_facilities_store, None)
+
+
