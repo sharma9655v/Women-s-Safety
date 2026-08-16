@@ -4,8 +4,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
+from app.facilities import FacilityStore, get_facilities_store
 from app.overlays import OverlayStore, get_overlay_store
-from app.overlays.store import DEFAULT_BBOX
+from app.overlays.store import (
+    DEFAULT_BBOX,
+    AreaSafety,
+    HeatZone,
+    IncidentMarker,
+    LightingMarker,
+)
 
 router = APIRouter(prefix="/api")
 
@@ -24,7 +31,7 @@ def get_incidents(
     store: Annotated[OverlayStore, Depends(get_overlay_store)],
     bbox: Annotated[tuple[float, float, float, float], Depends(_bbox)],
     limit: int = Query(default=500, ge=1, le=2000),
-):
+) -> list[IncidentMarker]:
     return store.incidents(bbox, limit)
 
 
@@ -33,15 +40,35 @@ def get_lighting(
     store: Annotated[OverlayStore, Depends(get_overlay_store)],
     bbox: Annotated[tuple[float, float, float, float], Depends(_bbox)],
     limit: int = Query(default=500, ge=1, le=2000),
-):
+) -> list[LightingMarker]:
     return store.lighting(bbox, limit)
+
+
+@router.get("/facilities")
+def get_facilities(
+    store: Annotated[FacilityStore, Depends(get_facilities_store)],
+    bbox: Annotated[tuple[float, float, float, float], Depends(_bbox)],
+    limit: int = Query(default=500, ge=1, le=2000),
+) -> list[dict[str, object]]:
+    rows = store.within_bbox(*bbox)[:limit]
+    return [
+        {
+            "id": str(row.id),
+            "type": row.type,
+            "name": row.name or row.type.replace("_", " "),
+            "lat": row.lat,
+            "lon": row.lon,
+            "distance_m": None,
+        }
+        for row in rows
+    ]
 
 
 @router.get("/alerts")
 def get_alerts(
     store: Annotated[OverlayStore, Depends(get_overlay_store)],
     limit: int = Query(default=20, ge=1, le=100),
-):
+) -> list[IncidentMarker]:
     return store.alerts(limit)
 
 
@@ -49,7 +76,7 @@ def get_alerts(
 def get_area_safety(
     store: Annotated[OverlayStore, Depends(get_overlay_store)],
     name: str = Query(default="connaught-place"),
-):
+) -> AreaSafety | dict[str, object]:
     area = store.area_safety(name)
     if area is None:
         return {
@@ -57,7 +84,8 @@ def get_area_safety(
             "score": None,
             "recent_incidents": 0,
             "lighting_summary": "Limited evidence",
-            "crowd": "low",
+            # Honest: no crowd data source exists.
+            "crowd": None,
             "by_time_of_day": [],
         }
     return area
@@ -67,12 +95,12 @@ def get_area_safety(
 def get_heatmap(
     store: Annotated[OverlayStore, Depends(get_overlay_store)],
     bbox: Annotated[tuple[float, float, float, float], Depends(_bbox)],
-):
+) -> list[HeatZone]:
     return store.heatmap(bbox)
 
 
 @router.get("/safety/areas")
 def get_areas(
     store: Annotated[OverlayStore, Depends(get_overlay_store)],
-):
+) -> list[AreaSafety]:
     return store.all_areas()

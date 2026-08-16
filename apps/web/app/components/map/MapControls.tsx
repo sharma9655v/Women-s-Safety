@@ -17,7 +17,7 @@ export function MapControls({
         type="button"
         onClick={() => apiRef.current?.zoomIn()}
         aria-label="Zoom in"
-        className="flex size-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface/90 text-text-secondary shadow-md backdrop-blur-md transition-all duration-200 hover:bg-surface-hover hover:text-foreground"
+        className="map-control-button flex size-11 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface/90 text-text-secondary shadow-md backdrop-blur-md transition-all duration-200 hover:bg-surface-hover hover:text-foreground"
       >
         <Plus className="size-4" />
       </button>
@@ -25,7 +25,7 @@ export function MapControls({
         type="button"
         onClick={() => apiRef.current?.zoomOut()}
         aria-label="Zoom out"
-        className="flex size-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface/90 text-text-secondary shadow-md backdrop-blur-md transition-all duration-200 hover:bg-surface-hover hover:text-foreground"
+        className="map-control-button flex size-11 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface/90 text-text-secondary shadow-md backdrop-blur-md transition-all duration-200 hover:bg-surface-hover hover:text-foreground"
       >
         <Minus className="size-4" />
       </button>
@@ -35,7 +35,7 @@ export function MapControls({
           mode === "3d" ? apiRef.current?.resetTransform() : apiRef.current?.resetView()
         }
         aria-label="Reset view"
-        className="flex size-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface/90 text-text-secondary shadow-md backdrop-blur-md transition-all duration-200 hover:bg-surface-hover hover:text-foreground"
+        className="map-control-button flex size-11 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface/90 text-text-secondary shadow-md backdrop-blur-md transition-all duration-200 hover:bg-surface-hover hover:text-foreground"
       >
         <RotateCcw className="size-4" />
       </button>

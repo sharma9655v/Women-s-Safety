@@ -38,6 +38,10 @@ export interface RouteResult {
   estimated_safety: number;
   confidence: number;
   uncertainty: number;
+  /** Length-weighted share of the route at risk >= 0.5 (0-1). */
+  high_risk_fraction?: number;
+  /** Effective risky metres: sum(length x risk) over matched segments. */
+  risk_exposure_m?: number;
   warnings: string[];
   reasons: string[];
   model_version: string;
@@ -154,7 +158,8 @@ export interface AreaSafety {
   score: SafetyScore;
   recent_incidents: number;
   lighting_summary: string;
-  crowd: CrowdLevel;
+  /** Always null today: no crowd data source exists. */
+  crowd: CrowdLevel | null;
   by_time_of_day: { hour: number; score: number; confidence: number }[];
 }
 
@@ -193,19 +198,51 @@ export interface RouteCandidate {
   warnings?: string[];
   model_version?: string;
   segment_ids?: number[];
+  /** Length-weighted share of the route at risk >= 0.5 (0-1). */
+  high_risk_fraction?: number;
+  /** Effective risky metres: sum(length x risk) over matched segments. */
+  risk_exposure_m?: number;
+  /** Backend-derived probability of risk along the route (0-1). */
+  risk_probability?: number;
+  /** Backend-derived model confidence (0-1). */
+  confidence_value?: number;
 }
 
+/** One result of the /api/geocode search (areas and facilities). */
+export interface GeocodeResult {
+  name: string;
+  kind: "area" | "facility";
+  type: string | null;
+  lat: number;
+  lon: number;
+}
+
+/** Admin review row from /api/admin/reports (privacy-filtered). */
+export interface AdminReport {
+  report_id: number;
+  segment_id: number;
+  category: string;
+  verification_state: string;
+  reported_at: string;
+  confidence: number;
+}
+
+/** One item of the public community feed (GET /api/community contract).
+ * Authorship is anonymous by design — the API never exposes a poster identity. */
 export interface CommunityPost {
   id: string;
-  author: string;
-  author_initials: string;
   kind: "alert" | "route_update" | "photo";
-  text: string;
   location: string;
-  time_ago: string;
-  likes: number;
-  comments: number;
-  verified: boolean;
+  text: string;
+  /** "VERIFIED" | "PENDING" | "REJECTED" — the public feed only shows VERIFIED. */
+  status: string;
+  created_at: string;
+}
+
+export interface CommunityPostInput {
+  kind: "alert" | "route_update" | "photo";
+  location: string;
+  text: string;
 }
 
 export interface ReportCategoryOption {
@@ -227,4 +264,301 @@ export interface ReportResult {
   category: string;
   verification_state: string;
   model_version: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Evidence engine (lifecycle demo)                                    */
+/* ------------------------------------------------------------------ */
+
+export interface EvidenceTypeSummary {
+  observation_type: string;
+  count: number;
+  score: number;
+  freshness: number;
+  confidence: number;
+  conflicts: boolean;
+  source_counts: Record<string, number>;
+  state_counts: Record<string, number>;
+  distinct_source_types: number;
+  corroborated: boolean;
+}
+
+export interface SegmentEvidence {
+  segment_id: number;
+  total_observations: number;
+  overall_freshness: number;
+  overall_confidence: number;
+  conflicts: string[];
+  by_type: Record<string, EvidenceTypeSummary>;
+  model_version: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Personal safety (Phase 9): contacts / emergency / sharing           */
+/* ------------------------------------------------------------------ */
+
+export type ContactRole = "primary" | "secondary";
+
+export interface TrustedContact {
+  id: number;
+  name: string;
+  relationship: string;
+  phone: string;
+  role: ContactRole;
+  enabled: boolean;
+}
+
+export interface ContactInput {
+  name: string;
+  relationship: string;
+  phone: string;
+  role: ContactRole;
+}
+
+export interface ContactUpdate {
+  name?: string;
+  relationship?: string;
+  phone?: string;
+  role?: ContactRole;
+  enabled?: boolean;
+}
+
+export type EmergencyStatus = "ACTIVE" | "ENDED";
+
+export interface EmergencySession {
+  session_id: string;
+  status: EmergencyStatus;
+  started_at: string;
+  ended_at: string | null;
+  end_reason: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  last_known_at: string | null;
+  notified_contact_ids: number[];
+  /** Honest delivery state: "no_channel" | "queued" | "sent" | "failed". */
+  notify_status: string;
+  location_sharing: string | null;
+}
+
+export type SharingKind = "EMERGENCY" | "GUARDIAN";
+export type SharingStatus = "ACTIVE" | "STOPPED" | "EXPIRED";
+
+export interface SharingSession {
+  session_id: string;
+  kind: SharingKind;
+  status: SharingStatus;
+  started_at: string;
+  expires_at: string;
+  stopped_at: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  last_updated_at: string | null;
+  recipient_ids: number[];
+}
+
+export interface NotificationEvent {
+  id: number;
+  type: string;
+  channel: string;
+  /** Honest status: "no_channel" | "queued" | "sent" | "failed". */
+  status: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Privacy center (Feature Group X): per-device settings               */
+/* ------------------------------------------------------------------ */
+
+export interface PrivacySettings {
+  voice_guidance_enabled: boolean;
+  voice_language: string;
+  discreet_mode_enabled: boolean;
+}
+
+/** GET /api/privacy/dashboard — the backend's own privacy summary.
+ * Report history is anonymous and is NOT listed here (by design). */
+export interface PrivacyDashboard {
+  location_sharing_active: boolean;
+  location_sharing_expires_at: string | null;
+  guardian_active: boolean;
+  guardian_checkin_deadline: string | null;
+  trusted_contact_count: number;
+  emergency_active: boolean;
+  emergency_notify_status: string | null;
+  voice_guidance_active: boolean;
+  voice_language: string;
+  discreet_mode_enabled: boolean;
+}
+
+/* ------------------------------------------------------------------ */
+/* Guardian journeys (Phase 10): check-ins and staged escalation        */
+/* ------------------------------------------------------------------ */
+
+export type GuardianStatus = "ACTIVE" | "COMPLETED" | "CANCELLED" | "ESCALATED";
+
+export interface GuardianSession {
+  session_id: string;
+  status: GuardianStatus;
+  started_at: string;
+  ended_at: string | null;
+  end_reason: string | null;
+  guardian_contact_ids: number[];
+  expected_arrival_at: string | null;
+  /** When a check-in is due; escalations start after this passes. */
+  checkin_deadline: string;
+  checkin_grace_s: number;
+  last_checkin_at: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  last_known_at: string | null;
+  deviation_detected: boolean;
+  first_deviation_at: string | null;
+  /** 0 = ok, 1 = check-in missed, 2 = escalated to contacts. */
+  escalation_stage: number;
+}
+
+export interface GuardianCreateInput {
+  guardian_contact_ids: number[];
+  expected_arrival_at?: string | null;
+  /** Planned route as [lon, lat] pairs — used only for deviation checks. */
+  planned_geometry?: [number, number][] | null;
+  checkin_grace_s?: number;
+}
+
+export interface GuardianEndResult {
+  session_id: string;
+  status: GuardianStatus;
+  ended_at: string;
+  end_reason: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Safety preferences (Feature Group Q): GET/PUT /api/preferences      */
+/* ------------------------------------------------------------------ */
+
+export interface SafetyPreferences {
+  client_id: string;
+  prefer_better_lit: boolean;
+  prefer_main_roads: boolean;
+  prefer_near_emergency: boolean;
+  avoid_known_hazards: boolean;
+  avoid_isolated_roads: boolean;
+  minimize_walking_time: boolean;
+  /** "balanced" | "safety" | "time" — maps to the routing safety_preference. */
+  default_profile: SafetyPreference;
+  discreet_mode_enabled: boolean;
+  voice_guidance_enabled: boolean;
+  voice_language: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Discreet mode (Feature Group R): GET/PUT /api/discreet-mode         */
+/* ------------------------------------------------------------------ */
+
+export interface DiscreetModeSettings {
+  client_id: string;
+  enabled: boolean;
+  quick_sos_gesture: string;
+  exit_to_neutral_app: boolean;
+  neutral_app_label: string;
+  neutral_app_icon: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Fake call (Feature Group T): POST/GET /api/fake-call                */
+/* ------------------------------------------------------------------ */
+
+export interface FakeCallSession {
+  id: string;
+  caller_name: string;
+  caller_number: string | null;
+  scheduled_at: string;
+  /** "SCHEDULED" | "TRIGGERED" | "DISMISSED" | "EXPIRED". */
+  status: string;
+}
+
+export interface FakeCallInput {
+  caller_name: string;
+  caller_number?: string | null;
+  /** Optional ISO timestamp; the backend defaults to now when omitted. */
+  scheduled_at?: string | null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Voice guidance (Feature Group U): /api/voice/start|stop|status      */
+/* ------------------------------------------------------------------ */
+
+export interface VoiceGuidanceStatus {
+  session_id: string;
+  client_id: string;
+  route_session_id: string | null;
+  language: string;
+  active: boolean;
+  started_at: string;
+  ended_at: string | null;
+}
+
+/* ------------------------------------------------------------------ */
+/* Journey check-ins (Feature Group V): /api/journey/checkins          */
+/* ------------------------------------------------------------------ */
+
+export type JourneyStatus = "ACTIVE" | "COMPLETED" | "CANCELLED" | "ESCALATED" | "MISSED";
+
+export interface JourneyCheckinSession {
+  session_id: string;
+  status: JourneyStatus;
+  started_at: string;
+  ended_at: string | null;
+  end_reason: string | null;
+  destination_name: string;
+  destination_lat: number | null;
+  destination_lon: number | null;
+  expected_arrival_at: string | null;
+  checkin_interval_s: number;
+  checkin_grace_s: number;
+  last_checkin_at: string | null;
+  next_checkin_at: string | null;
+  contact_ids: number[];
+  escalation_stage: number;
+  notified_stage: number;
+  latitude: number | null;
+  longitude: number | null;
+  last_known_at: string | null;
+}
+
+export interface JourneyCheckinInput {
+  destination_name: string;
+  destination_lat: number | null;
+  destination_lon: number | null;
+  expected_arrival_at?: string | null;
+  checkin_interval_s?: number;
+  checkin_grace_s?: number;
+  contact_ids: number[];
+}
+
+export interface JourneyEndResult {
+  session_id: string;
+  status: JourneyStatus;
+  ended_at: string;
+  end_reason: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* Model traceability: GET /api/models/current                         */
+/* ------------------------------------------------------------------ */
+
+export interface MlGate {
+  open: boolean;
+  verified_observations: number;
+  span_days: number | null;
+  min_verified_observations: number;
+  min_span_days: number;
+}
+
+export interface ModelsCurrent {
+  risk_model: string;
+  evidence_model: string;
+  dataset_versions: string[];
+  ml_gate: MlGate;
 }

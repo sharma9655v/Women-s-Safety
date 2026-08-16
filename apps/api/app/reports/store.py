@@ -57,6 +57,10 @@ class ReportStore(Protocol):
 
     def audit(self, action: str, admin_hash: str, details: dict[str, object]) -> None: ...
 
+    def list_reports(self, limit: int = 50) -> list[StoredReport]: ...
+
+    def set_verification(self, report_id: int, state: VerificationState) -> StoredReport | None: ...
+
 
 class MemoryReportStore:
     def __init__(self, evidence: EvidenceStore) -> None:
@@ -146,6 +150,15 @@ class MemoryReportStore:
             }
         )
 
+    def list_reports(self, limit: int = 50) -> list[StoredReport]:
+        return sorted(self._reports.values(), key=lambda r: r.reported_at, reverse=True)[:limit]
+
+    def set_verification(self, report_id: int, state: VerificationState) -> StoredReport | None:
+        if report_id not in self._reports:
+            return None
+        self._update_state(report_id, state)
+        return self._reports[report_id]
+
 
 class PostgresReportStore:
     def __init__(self, engine: Engine, evidence: PostgresEvidenceStore) -> None:
@@ -234,3 +247,48 @@ class PostgresReportStore:
                     "details": json.dumps(details, default=str),
                 },
             )
+
+    def list_reports(self, limit: int = 50) -> list[StoredReport]:
+        stmt = text(
+            "SELECT id, segment_id, category, description_redacted, client_hash, "
+            "evidence_image_encrypted, reported_at, verification_state, confidence "
+            "FROM safety_reports ORDER BY reported_at DESC LIMIT :limit"
+        )
+        with self._engine.connect() as conn:
+            rows = conn.execute(stmt, {"limit": limit}).fetchall()
+        return [
+            StoredReport(
+                id=int(row.id),
+                segment_id=int(row.segment_id),
+                category=row.category,
+                description_redacted=row.description_redacted,
+                client_hash=row.client_hash,
+                image_encrypted=row.evidence_image_encrypted,
+                reported_at=row.reported_at,
+                verification_state=VerificationState(row.verification_state),
+                confidence=float(row.confidence),
+            )
+            for row in rows
+        ]
+
+    def set_verification(self, report_id: int, state: VerificationState) -> StoredReport | None:
+        stmt = text(
+            "UPDATE safety_reports SET verification_state = :state WHERE id = :report_id "
+            "RETURNING id, segment_id, category, description_redacted, client_hash, "
+            "evidence_image_encrypted, reported_at, verification_state, confidence"
+        )
+        with self._engine.begin() as conn:
+            row = conn.execute(stmt, {"state": state, "report_id": report_id}).one_or_none()
+        if row is None:
+            return None
+        return StoredReport(
+            id=int(row.id),
+            segment_id=int(row.segment_id),
+            category=row.category,
+            description_redacted=row.description_redacted,
+            client_hash=row.client_hash,
+            image_encrypted=row.evidence_image_encrypted,
+            reported_at=row.reported_at,
+            verification_state=VerificationState(row.verification_state),
+            confidence=float(row.confidence),
+        )

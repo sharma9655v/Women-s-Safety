@@ -55,6 +55,18 @@ services:
       # Offline-demo fallback: if PostGIS is unreachable, the API serves the
       # seeded demo-evidence snapshot from memory (see evidence/registry.py).
       EVIDENCE_SEED_JSON: /app/data/processed/demo-evidence.json
+      # Demo stack: the well-known "dev-admin-key" gates municipal endpoints
+      # (verify repair, recompute, review queue). It is active ONLY when
+      # ADMIN_DEV_KEY_ENABLED=1 AND APP_ENV=development. A production
+      # deployment must set ADMIN_KEY and keep ADMIN_DEV_KEY_ENABLED off.
+      APP_ENV: development
+      ADMIN_DEV_KEY_ENABLED: "1"
+      # External delivery stays OFF in the demo stack (fully offline). To run
+      # a live Telegram demo, set NOTIFY_CHANNEL=telegram plus the two vars
+      # below; the API then records real 'sent'/'failed' delivery status.
+      NOTIFY_CHANNEL: ${NOTIFY_CHANNEL:-none}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
     volumes:
       - ../data:/app/data:ro
     ports:

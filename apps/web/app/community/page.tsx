@@ -7,7 +7,7 @@ import { Button } from "@/app/components/ui/Button";
 import { Card, CardHeader } from "@/app/components/ui/Card";
 import { Input, Select } from "@/app/components/ui/Input";
 import { SkeletonCard } from "@/app/components/ui/Skeleton";
-import { fetchCommunity } from "@/lib/api";
+import { fetchCommunity, submitCommunityPost } from "@/lib/api";
 import type { CommunityPost } from "@/lib/types";
 
 const KINDS = [
@@ -23,6 +23,7 @@ export default function CommunityPage() {
   const [location, setLocation] = useState("");
   const [text, setText] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [published, setPublished] = useState(false);
 
   useEffect(() => {
@@ -44,15 +45,25 @@ export default function CommunityPage() {
 
   const canPost = text.trim().length >= 10 && location.trim().length >= 2;
 
-  const publish = () => {
+  const publish = async () => {
     if (!canPost || submitting) return;
     setSubmitting(true);
-    setTimeout(() => {
+    setError(null);
+    setPublished(false);
+    try {
+      await submitCommunityPost({
+        kind: kind as "route_update" | "photo" | "alert",
+        location: location.trim(),
+        text: text.trim(),
+      });
       setPublished(true);
-      setSubmitting(false);
       setText("");
       setLocation("");
-    }, 700);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not publish the update. Try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -61,10 +72,11 @@ export default function CommunityPage() {
         <header>
           <h1 className="flex items-center gap-2 text-xl font-bold text-foreground">
             <span className="text-primary">Community</span>
-            <ShieldCheck className="size-5 text-info" aria-label="Verified community" />
+            <ShieldCheck className="size-5 text-info" aria-label="Anonymous community" />
           </h1>
           <p className="text-sm text-text-muted">
-            Verified women sharing route updates. Everything stays anonymous to the public.
+            Anonymous route updates from women in your city. Authorship is never shown — verified
+            posts carry a Verified badge only after review.
           </p>
         </header>
 
@@ -105,18 +117,32 @@ export default function CommunityPage() {
             />
             <div className="flex items-center justify-between gap-3">
               <p className="text-[11px] text-text-muted">
-                Published anonymously — your identity is never shown.
+                Published anonymously — your identity is never shown. Posts appear in the feed after
+                a moderator verifies them.
               </p>
-              <Button size="sm" loading={submitting} disabled={!canPost} onClick={publish}>
+              <Button
+                size="sm"
+                loading={submitting}
+                disabled={!canPost}
+                onClick={() => void publish()}
+              >
                 <MessageSquarePlus className="size-3.5" aria-hidden /> Post update
               </Button>
             </div>
+            {error ? (
+              <p
+                role="alert"
+                className="rounded-xl border border-danger/25 bg-danger/8 px-3 py-2 text-xs text-danger"
+              >
+                {error}
+              </p>
+            ) : null}
             {published ? (
               <p
                 role="status"
                 className="rounded-xl border border-success/25 bg-success/8 px-3 py-2 text-xs text-success"
               >
-                Update published. Thank you for helping your community.
+                Update submitted for review. Thank you for helping your community.
               </p>
             ) : null}
           </div>

@@ -145,6 +145,8 @@ class TypeSummary:
     conflicts: bool
     source_counts: dict[str, int]
     state_counts: dict[str, int]
+    distinct_source_types: int = 0
+    corroborated: bool = False
 
 
 @dataclass(frozen=True)
@@ -199,6 +201,8 @@ def aggregate(
         conflicting = any(
             _conflicts(a, b) for i, a in enumerate(type_items) for b in type_items[i + 1 :]
         )
+        source_counts = dict(Counter(item.source_type for item in type_items))
+        distinct_sources = len(source_counts)
         summaries[obs_type] = TypeSummary(
             observation_type=obs_type,
             count=len(type_items),
@@ -206,10 +210,14 @@ def aggregate(
             freshness=max(freshness(item.observed_at, now, obs_type) for item in type_items),
             confidence=_type_confidence(score, conflicting),
             conflicts=conflicting,
-            source_counts=dict(Counter(item.source_type for item in type_items)),
+            source_counts=source_counts,
             state_counts=dict(
                 Counter(item.state.value for item in items if item.observation_type == obs_type)
             ),
+            distinct_source_types=distinct_sources,
+            # Same independence proxy as compute_states: >= 2 distinct source
+            # types OR >= 3 items.
+            corroborated=distinct_sources >= 2 or len(type_items) >= 3,
         )
 
     confidences = [s.confidence for s in summaries.values()]

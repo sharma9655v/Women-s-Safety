@@ -30,6 +30,9 @@ class FacilityStore:
     ) -> Sequence[Facility]:
         raise NotImplementedError
 
+    def search(self, query: str, limit: int = 10) -> Sequence[Facility]:
+        raise NotImplementedError
+
     def count(self) -> int:
         raise NotImplementedError
 
@@ -57,6 +60,16 @@ class MemoryFacilityStore(FacilityStore):
 
     def count(self) -> int:
         return len(self._facilities)
+
+    def search(self, query: str, limit: int = 10) -> Sequence[Facility]:
+        needle = query.strip().lower()
+        if not needle:
+            return []
+        return [
+            facility
+            for facility in self._facilities
+            if facility.name is not None and needle in facility.name.lower()
+        ][:limit]
 
 
 class PostgresFacilityStore(FacilityStore):
@@ -103,3 +116,21 @@ class PostgresFacilityStore(FacilityStore):
     def count(self) -> int:
         with self._engine.connect() as conn:
             return int(conn.execute(text("SELECT count(*) FROM facilities")).scalar_one())
+
+    def search(self, query: str, limit: int = 10) -> Sequence[Facility]:
+        stmt = (
+            "SELECT id, type, name, ST_X(geometry) AS lon, ST_Y(geometry) AS lat "
+            "FROM facilities WHERE name ILIKE '%' || :query || '%' ORDER BY name LIMIT :limit"
+        )
+        with self._engine.connect() as conn:
+            rows = conn.execute(text(stmt), {"query": query.strip(), "limit": limit}).fetchall()
+        return [
+            Facility(
+                id=int(row.id),
+                type=row.type,
+                name=row.name,
+                lon=float(row.lon),
+                lat=float(row.lat),
+            )
+            for row in rows
+        ]

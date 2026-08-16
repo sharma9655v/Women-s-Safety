@@ -5,41 +5,99 @@ import {
   AlertTriangle,
   Bell,
   Building2,
+  ClipboardCheck,
+  Cloud,
   Compass,
+  Database,
   FileText,
   Map as MapIcon,
+  MapPin,
   MessagesSquare,
+  Moon,
   Settings,
   Shield,
+  ShieldCheck,
+  Sun,
   UserRound,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { EmergencyCard } from "@/app/components/emergency/EmergencyCard";
-import { useSos } from "./AppShell";
+import { fetchAlerts } from "@/lib/api";
+import { type TKey, useI18n } from "@/lib/i18n";
+import { useDiscreetMode, useSos } from "./AppShell";
 
-const NAV = [
-  { id: "live", label: "Live Map", icon: MapIcon, href: "/live" },
-  { id: "insights", label: "Insights", icon: Compass, href: "/insights" },
-  { id: "alerts", label: "Alerts", icon: Bell, href: "/alerts", badge: 4 },
-  { id: "report", label: "Report", icon: FileText, href: "/report" },
+const NEUTRAL_ICONS: Record<string, typeof Cloud> = {
+  cloud: Cloud,
+  sun: Sun,
+  moon: Moon,
+};
+
+const NAV: { id: string; labelKey: TKey; icon: typeof MapIcon; href: string }[] = [
+  { id: "live", labelKey: "nav.map", icon: MapIcon, href: "/live" },
+  { id: "insights", labelKey: "nav.insights", icon: Compass, href: "/insights" },
+  { id: "alerts", labelKey: "nav.alerts", icon: Bell, href: "/alerts" },
+  { id: "report", labelKey: "nav.report", icon: FileText, href: "/report" },
+  {
+    id: "guardian",
+    labelKey: "nav.guardian" as TKey,
+    icon: ShieldCheck,
+    href: "/live#guardian",
+  },
+  {
+    id: "contacts",
+    labelKey: "nav.contacts",
+    icon: UserRound,
+    href: "/contacts",
+  },
   {
     id: "community",
-    label: "Community",
+    labelKey: "nav.community",
     icon: MessagesSquare,
     href: "/community",
   },
   {
     id: "civic",
-    label: "Civic Ops",
+    labelKey: "nav.civic",
     icon: Building2,
     href: "/civic",
+  },
+  {
+    id: "sources",
+    labelKey: "nav.sources",
+    icon: Database,
+    href: "/sources",
+  },
+  {
+    id: "admin",
+    labelKey: "nav.admin",
+    icon: ClipboardCheck,
+    href: "/admin",
   },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const openSos = useSos();
+  const discreet = useDiscreetMode();
+  const { t } = useI18n();
+  const [alertCount, setAlertCount] = useState<number | null>(null);
+
+  // Real alert count from the backend — never a hardcoded badge.
+  useEffect(() => {
+    let cancelled = false;
+    fetchAlerts()
+      .then((alerts) => {
+        if (!cancelled) setAlertCount(alerts.length);
+      })
+      .catch(() => {
+        if (!cancelled) setAlertCount(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const isActive = (href: string) => {
     if (href === "/live") return pathname === "/live";
@@ -47,17 +105,26 @@ export function Sidebar() {
   };
 
   return (
-    <aside className="glass hidden w-[220px] shrink-0 flex-col border-y-0 border-l-0 md:flex">
+    <aside className="glass hidden w-[220px] shrink-0 flex-col border-y-0 border-l-0 lg:flex">
       {/* Logo */}
       <div className="flex items-center gap-3 border-b border-border px-4 py-4">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-lg shadow-primary/25">
-          <Shield className="size-5" aria-hidden />
+          {discreet.enabled && !discreet.loading ? (
+            (() => {
+              const NeutralIcon = NEUTRAL_ICONS[discreet.icon] ?? Cloud;
+              return <NeutralIcon className="size-5" aria-hidden />;
+            })()
+          ) : (
+            <Shield className="size-5" aria-hidden />
+          )}
         </span>
         <div className="min-w-0">
           <p className="font-display truncate text-base font-semibold tracking-tight text-foreground">
-            Map <span className="text-primary">for Women</span>
+            {discreet.enabled && !discreet.loading ? discreet.label : t("appName")}
           </p>
-          <p className="truncate text-[10px] text-text-muted">Safer Routes · Stronger Cities</p>
+          <p className="truncate text-[10px] text-text-muted">
+            {discreet.enabled && !discreet.loading ? "Local services" : t("tagline")}
+          </p>
         </div>
       </div>
 
@@ -72,7 +139,7 @@ export function Sidebar() {
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
-                  className={`relative flex h-10 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-200 ${
+                  className={`relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-200 ${
                     active
                       ? "text-white"
                       : "text-text-secondary hover:bg-surface-hover hover:text-foreground"
@@ -91,10 +158,10 @@ export function Sidebar() {
                     />
                   ) : null}
                   <Icon className="relative size-4" aria-hidden />
-                  <span className="relative flex-1">{item.label}</span>
-                  {"badge" in item && item.badge ? (
+                  <span className="relative flex-1">{t(item.labelKey)}</span>
+                  {item.id === "alerts" && alertCount !== null && alertCount > 0 ? (
                     <span className="relative flex size-5 items-center justify-center rounded-full bg-emergency text-[9px] font-bold text-white">
-                      {item.badge}
+                      {alertCount}
                     </span>
                   ) : null}
                 </Link>
@@ -108,10 +175,10 @@ export function Sidebar() {
         <button
           type="button"
           onClick={openSos}
-          className="flex h-10 w-full cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-semibold text-emergency transition-colors duration-150 hover:bg-emergency/8"
+          className="flex min-h-12 w-full cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-semibold text-emergency transition-colors duration-150 hover:bg-emergency/8"
         >
           <AlertTriangle className="size-4" aria-hidden />
-          Emergency
+          {t("nav.emergency")}
         </button>
 
         {/* Bottom links */}
@@ -119,15 +186,21 @@ export function Sidebar() {
           {[
             {
               id: "profile",
-              label: "Profile",
+              labelKey: "nav.profile" as TKey,
               icon: UserRound,
               href: "/profile",
             },
             {
               id: "settings",
-              label: "Settings",
+              labelKey: "nav.settings" as TKey,
               icon: Settings,
               href: "/settings",
+            },
+            {
+              id: "privacy",
+              labelKey: "nav.privacy" as TKey,
+              icon: Shield,
+              href: "/privacy",
             },
           ].map((item) => {
             const Icon = item.icon;
@@ -135,10 +208,10 @@ export function Sidebar() {
               <li key={item.id}>
                 <Link
                   href={item.href}
-                  className="flex h-9 items-center gap-3 rounded-xl px-3 text-sm text-text-muted transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
+                  className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm text-text-muted transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
                 >
                   <Icon className="size-4" aria-hidden />
-                  {item.label}
+                  {t(item.labelKey)}
                 </Link>
               </li>
             );
@@ -149,6 +222,14 @@ export function Sidebar() {
       {/* Emergency card */}
       <div className="border-t border-border p-3">
         <EmergencyCard />
+      </div>
+
+      {/* Location sharing status */}
+      <div className="border-t border-border px-4 py-3">
+        <div className="location-sharing-indicator">
+          <MapPin className="size-3.5" aria-hidden />
+          <span>Location sharing: OFF</span>
+        </div>
       </div>
     </aside>
   );

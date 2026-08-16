@@ -20,7 +20,9 @@ import random
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import Engine, text
+
+from app.db import make_engine
 
 from app.config import settings
 from app.evidence.engine import evidence_hash
@@ -60,7 +62,9 @@ AGING_DAYS = 5
 STALE_DAYS = 34
 
 
-def _pick_segments(engine, lat: float, lon: float, radius_m: int, k: int) -> list[dict]:
+def _pick_segments(
+    engine: Engine, lat: float, lon: float, radius_m: int, k: int
+) -> list[dict[str, int | float | str]]:
     stmt = text(
         "SELECT id, road_type, lit, "
         "ST_Y(ST_LineInterpolatePoint(geometry, 0.5)) AS lat, "
@@ -140,9 +144,10 @@ def main() -> int:
     # produces identical evidence_hashes (ON CONFLICT DO NOTHING) and is fully
     # idempotent, while fresh/aging/stale tiers still reflect real time.
     now = datetime.now(UTC).replace(minute=0, second=0, microsecond=0)
-    engine = create_engine(settings.database_url)
+    engine: Engine | None = make_engine()
 
     try:
+        assert engine is not None
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
     except Exception as exc:
@@ -176,7 +181,7 @@ def main() -> int:
                             state = "REPORTED"
                         obs_rows.append(
                             _build_observation(
-                                seg["segment_id"],
+                                int(seg["segment_id"]),
                                 DEMO_SOURCE,
                                 obs_type,
                                 value,
@@ -212,9 +217,11 @@ def main() -> int:
                     ),
                     {"src": DEMO_SOURCE, "lat": lat, "lon": lon},
                 ).fetchall()
-                for row in rows:
+                for snap_row in rows:
                     snapshot_items.append(
-                        _row_to_snapshot_item(row, float(row.lat), float(row.lon), name)
+                        _row_to_snapshot_item(
+                            snap_row, float(snap_row.lat), float(snap_row.lon), name
+                        )
                     )
 
     snapshot = {

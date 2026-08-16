@@ -14,7 +14,7 @@ export function Input({ label, hint, className = "", ...rest }: InputProps) {
         </label>
       ) : null}
       <input
-        className={`h-10 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-hover focus:shadow-sm focus:outline-none ${className}`}
+        className={`h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-hover focus:shadow-sm focus:outline-none ${className}`}
         {...rest}
       />
       {hint ? <p className="mt-1 text-right text-[11px] text-text-muted">{hint}</p> : null}
@@ -36,7 +36,7 @@ export function Select({ label, children, className = "", ...rest }: SelectProps
         </label>
       ) : null}
       <select
-        className={`h-10 w-full appearance-none rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-all duration-200 focus:border-primary/50 focus:bg-surface-hover focus:shadow-sm focus:outline-none ${className}`}
+        className={`h-11 w-full appearance-none rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-all duration-200 focus:border-primary/50 focus:bg-surface-hover focus:shadow-sm focus:outline-none ${className}`}
         {...rest}
       >
         {children}

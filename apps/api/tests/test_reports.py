@@ -9,6 +9,8 @@ from app.evidence.engine import Observation
 from app.evidence.states import VerificationState
 from app.main import app
 
+DEV_ADMIN_KEY = "dev-admin-key"
+
 PNG_1PX = base64.b64decode(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
 )
@@ -219,3 +221,58 @@ def test_admin_disabled_in_production(monkeypatch) -> None:
     client, _, _ = make_client()
     resp = client.post("/api/admin/recompute", json={}, headers={"X-Admin-Key": "dev-admin-key"})
     assert resp.status_code == 503
+
+
+def test_admin_list_reports_requires_key_and_is_content_free() -> None:
+    client, _, _ = make_client()
+    client.post("/api/reports", json=VALID)
+
+    denied = client.get("/api/admin/reports")
+    assert denied.status_code == 403
+
+    resp = client.get("/api/admin/reports", headers={"X-Admin-Key": DEV_ADMIN_KEY})
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body["reports"]) == 1
+    flat = json.dumps(body).lower()
+    for banned in ("description", "client_hash", "image", "reporter", "email", "phone"):
+        assert banned not in flat
+
+
+def test_admin_verify_and_reject_are_sticky_and_audited() -> None:
+    client, _, reports = make_client()
+    report_id = client.post("/api/reports", json=VALID).json()["report_id"]
+
+    resp = client.post(
+        f"/api/admin/reports/{report_id}/verify",
+        headers={"X-Admin-Key": DEV_ADMIN_KEY},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"report_id": report_id, "verification_state": "VERIFIED"}
+    stored = next(iter(reports._reports.values()))  # type: ignore[attr-defined]
+    assert stored.verification_state == VerificationState.VERIFIED
+
+    # The sticky state survives a full recompute (admin decisions hold).
+    client.post("/api/admin/recompute", json={}, headers={"X-Admin-Key": DEV_ADMIN_KEY})
+    stored = next(iter(reports._reports.values()))  # type: ignore[attr-defined]
+    assert stored.verification_state == VerificationState.VERIFIED
+
+    resp = client.post(
+        f"/api/admin/reports/{report_id}/reject",
+        headers={"X-Admin-Key": DEV_ADMIN_KEY},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"report_id": report_id, "verification_state": "REJECTED"}
+
+    actions = [entry["action"] for entry in reports._audit_log]  # type: ignore[attr-defined]
+    assert actions.count("verify") == 1
+    assert actions.count("reject") == 1
+
+
+def test_admin_verification_unknown_report_404() -> None:
+    client, _, _ = make_client()
+    resp = client.post(
+        "/api/admin/reports/999999/verify",
+        headers={"X-Admin-Key": DEV_ADMIN_KEY},
+    )
+    assert resp.status_code == 404

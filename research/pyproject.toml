@@ -1,7 +1,7 @@
 [project]
 name = "map-for-women-research"
 version = "0.1.0"
-description = "Phase 7 experiments: baselines, stress tests, lifecycle. Every claimed number is produced by a recorded run."
+description = "Phase 7 experiments: baselines, stress tests, lifecycle, ablation, calibration. Every claimed number is produced by a recorded run."
 requires-python = ">=3.12"
 dependencies = [
     "api",

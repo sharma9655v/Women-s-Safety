@@ -126,7 +126,13 @@ export default function InsightsPage() {
     );
   }
 
-  const freshShare = Math.round((area.score.evidence.coverage ?? 0) * 100);
+  const coverageLabel =
+    area.score.evidence.coverage === null
+      ? "—"
+      : `${Math.round(area.score.evidence.coverage * 100)}%`;
+
+  const isAllFresh =
+    area.score.evidence.coverage !== null && area.score.evidence.freshness.tier === "fresh";
 
   return (
     <div className="h-full overflow-y-auto">
@@ -136,7 +142,8 @@ export default function InsightsPage() {
             Safety <span className="text-primary">Insights</span>
           </h1>
           <p className="text-sm text-text-muted">
-            Estimates for {area.area_name} built from verified reports and public evidence.
+            Estimates for {area.area_name} built from verified reports and public evidence. Coverage
+            is Delhi-only for now.
           </p>
         </header>
 
@@ -149,7 +156,7 @@ export default function InsightsPage() {
           />
           <StatTile
             icon={<Radio className="size-5" aria-hidden />}
-            label="Incidents (7 days)"
+            label="Recent incidents"
             value={String(area.recent_incidents)}
             tone="bg-emergency/12 text-emergency"
             delay={0.06}
@@ -164,7 +171,7 @@ export default function InsightsPage() {
           <StatTile
             icon={<Unplug className="size-5" aria-hidden />}
             label="Evidence coverage"
-            value={`${freshShare}%`}
+            value={coverageLabel}
             tone="bg-info/12 text-info"
             delay={0.18}
           />
@@ -191,16 +198,17 @@ export default function InsightsPage() {
                 <li className="flex items-start gap-2.5">
                   <span className="mt-1 size-2 shrink-0 rounded-full bg-success" />
                   <span>
-                    <strong className="text-foreground">Crowd level: {area.crowd}.</strong> Observed
-                    from transit data and community check-ins; changes throughout the day.
+                    <strong className="text-foreground">
+                      Crowd level: {area.crowd ?? "unavailable"}.
+                    </strong>{" "}
+                    Crowd data is not available yet — we never guess it.
                   </span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <span className="mt-1 size-2 shrink-0 rounded-full bg-warning" />
                   <span>
                     <strong className="text-foreground">Lighting: {area.lighting_summary}.</strong>{" "}
-                    Streetlight data comes from city sensors and reports; some areas have no
-                    coverage.
+                    Streetlight evidence comes from community reports; some areas have no coverage.
                   </span>
                 </li>
                 <li className="flex items-start gap-2.5">
@@ -218,8 +226,9 @@ export default function InsightsPage() {
                   <span className="mt-1 size-2 shrink-0 rounded-full bg-info" />
                   <span>
                     <strong className="text-foreground">Confidence: {score.confidence}.</strong>{" "}
-                    Only {freshShare}% of this area is covered by fresh evidence — the rest is
-                    interpolated.
+                    {isAllFresh
+                      ? "Fresh evidence covers this area."
+                      : "Coverage is not fully measured — treat the estimate as approximate."}
                   </span>
                 </li>
               </ul>

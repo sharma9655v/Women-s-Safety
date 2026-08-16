@@ -1,14 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from functools import lru_cache
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.config import settings
 from app.evidence import EvidenceStore, aggregate, get_evidence_store
 from app.facilities import FacilityStore, get_facilities_store
+from app.reports.limiter import RateLimiter, client_key, get_rate_limiter
 from app.risk import (
     MODEL_VERSION,
     ScoredRoute,
@@ -21,7 +23,7 @@ from app.risk import (
 )
 from app.routing import OsrmClient, OsrmError
 from app.schemas import RouteCandidate, RouteRequest, RouteResult, RoutesResponse, RouteType
-from app.segments import SegmentStore, get_segments_store, map_match
+from app.segments import SegmentStore, get_segments_store, map_match, nearest_road_distance_m
 from app.segments.matcher import RoadSegment
 
 router = APIRouter(prefix="/api")
@@ -34,12 +36,25 @@ FACILITY_BBOX_PAD_DEG = 0.02
 
 EMERGENCY_FACILITY_TYPES = ("police", "hospital", "fire_station")
 
+# Endpoints farther than this from the nearest mapped road get an honest
+# "off the road network" warning on every route.
+OFF_NETWORK_THRESHOLD_M = 150.0
+
 # Output order matches design.md outputs 1..3.
 _ROUTE_TYPES: tuple[RouteType, RouteType, RouteType] = (
     "safety_priority",
     "balanced",
     "time_priority",
 )
+
+
+@lru_cache(maxsize=1)
+def get_route_rate_limiter() -> RateLimiter:
+    return get_rate_limiter(
+        prefix="route_ratelimit",
+        limit=settings.route_rate_limit_per_minute,
+        window_s=60,
+    )
 
 
 def get_osrm() -> Iterator[OsrmClient]:
@@ -66,17 +81,25 @@ def _ist_hour() -> int:
 )
 def get_routes(
     req: RouteRequest,
+    request: Request,
     client: Annotated[OsrmClient, Depends(get_osrm)],
     segments: Annotated[SegmentStore, Depends(get_segments_store)],
     evidence: Annotated[EvidenceStore, Depends(get_evidence_store)],
     facilities: Annotated[FacilityStore, Depends(get_facilities_store)],
+    limiter: Annotated[RateLimiter, Depends(get_route_rate_limiter)],
 ) -> RoutesResponse:
     """Three ranked, explainable route types: Safety Priority / Balanced /
     Time Priority. Never fabricates a route and never claims safety.
 
     Every route carries risk probability, confidence, uncertainty, reasons,
-    warnings and the deterministic model version.
+    warnings and the deterministic model version. Requests are rate-limited
+    per pseudonymous client (same pattern as reports).
     """
+    if not limiter.allow(client_key(request)):
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS, "Too many routing requests — try again later"
+        )
+
     try:
         candidates = client.routes(req.origin, req.destination, req.mode)
     except OsrmError as exc:
@@ -97,6 +120,15 @@ def get_routes(
         )
 
     matched, nearby_by_id = _match_all(candidates, segments)
+    nearby_segments = list(nearby_by_id.values())
+    endpoint_warnings = [
+        *(_off_network_warning("Origin", req.origin.lon, req.origin.lat, nearby_segments)),
+        *(
+            _off_network_warning(
+                "Destination", req.destination.lon, req.destination.lat, nearby_segments
+            )
+        ),
+    ]
     all_segment_ids = [seg_id for ids in matched for seg_id in ids]
     observations = evidence.observations_for_segments(all_segment_ids)
     evidence_by_segment = {
@@ -169,7 +201,9 @@ def get_routes(
                 estimated_safety=round((1.0 - chosen_route.risk_probability) * 100),
                 confidence=chosen_route.confidence,
                 uncertainty=chosen_route.uncertainty,
-                warnings=route_warnings(chosen_route),
+                high_risk_fraction=chosen_route.high_risk_fraction,
+                risk_exposure_m=chosen_route.risk_exposure_m,
+                warnings=[*endpoint_warnings, *route_warnings(chosen_route)],
                 reasons=list(chosen_route.reasons),
                 model_version=MODEL_VERSION,
                 segment_ids=matched[candidate_index],
@@ -231,3 +265,21 @@ def _midpoint(coords: tuple[tuple[float, float], ...]) -> tuple[float, float] | 
     if not coords:
         return None
     return coords[len(coords) // 2]
+
+
+def _off_network_warning(
+    label: str, lon: float, lat: float, nearby: list[RoadSegment]
+) -> list[str]:
+    """Honest warning when an endpoint is far from the mapped road network.
+
+    We do not snap the endpoint or fabricate a closer start: the route is
+    returned as-is, with the distance surfaced so users know the start/end
+    may be approximate.
+    """
+    distance_m = nearest_road_distance_m(lon, lat, nearby)
+    if distance_m is None or distance_m <= OFF_NETWORK_THRESHOLD_M:
+        return []
+    return [
+        f"{label} is ~{round(distance_m)} m from the nearest mapped road"
+        " — the route may be approximate"
+    ]

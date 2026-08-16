@@ -1,8 +1,10 @@
 import { scoreFromRisk } from "./score";
 import type {
+  AdminReport,
   AreaSafety,
   CommunityPost,
   Facility,
+  GeocodeResult,
   Incident,
   LightingObservation,
   RouteCandidate,
@@ -377,39 +379,27 @@ export const MOCK_ALERTS: Incident[] = [
 export const MOCK_COMMUNITY: CommunityPost[] = [
   {
     id: "p1",
-    author: "Neha Verma",
-    author_initials: "NV",
     kind: "alert",
     text: "Shared an alert: harassment near Connaught Place inner circle.",
     location: "Connaught Place",
-    time_ago: "12 min ago",
-    likes: 48,
-    comments: 9,
-    verified: true,
+    status: "VERIFIED",
+    created_at: new Date(Date.now() - 12 * 60_000).toISOString(),
   },
   {
     id: "p2",
-    author: "Pooja Singh",
-    author_initials: "PS",
     kind: "route_update",
     text: "Route update: Tilak Marg footpath reopened after road work.",
     location: "Tilak Marg",
-    time_ago: "1 hr ago",
-    likes: 31,
-    comments: 4,
-    verified: false,
+    status: "VERIFIED",
+    created_at: new Date(Date.now() - 60 * 60_000).toISOString(),
   },
   {
     id: "p3",
-    author: "Riya Malhotra",
-    author_initials: "RM",
     kind: "photo",
     text: "Photo shared: new streetlight installed near ITO crossing.",
     location: "ITO Area",
-    time_ago: "3 hrs ago",
-    likes: 22,
-    comments: 2,
-    verified: false,
+    status: "VERIFIED",
+    created_at: new Date(Date.now() - 3 * 3600_000).toISOString(),
   },
 ];
 
@@ -482,6 +472,45 @@ export const MOCK_HEATMAP = {
     { name: "Karol Bagh", lat: 28.6519, lon: 77.1908, level: 0.22 },
   ],
 };
+
+export const MOCK_GEOCODE: GeocodeResult[] = [
+  { name: "Connaught Place", kind: "area", type: null, lat: 28.6314, lon: 77.2167 },
+  { name: "Rajiv Chowk", kind: "area", type: null, lat: 28.6328, lon: 77.2197 },
+  { name: "India Gate", kind: "area", type: null, lat: 28.6129, lon: 77.2295 },
+  {
+    name: "Connaught Police Station",
+    kind: "facility",
+    type: "police",
+    lat: 28.6305,
+    lon: 77.2148,
+  },
+  {
+    name: "Karol Bagh Police Station",
+    kind: "facility",
+    type: "police",
+    lat: 28.6519,
+    lon: 77.1908,
+  },
+];
+
+export const MOCK_ADMIN_REPORTS: AdminReport[] = [
+  {
+    report_id: 7401,
+    segment_id: 456736,
+    category: "harassment",
+    verification_state: "pending",
+    reported_at: new Date(Date.now() - 86400000).toISOString(),
+    confidence: 0.62,
+  },
+  {
+    report_id: 7402,
+    segment_id: 457230,
+    category: "poor_lighting",
+    verification_state: "CORROBORATED",
+    reported_at: new Date(Date.now() - 172800000).toISOString(),
+    confidence: 0.71,
+  },
+];
 
 export function mockScoreForSegment(risk: number): ReturnType<typeof scoreFromRisk> {
   return scoreFromRisk(risk, Math.max(0.25, 1 - risk * 4));

@@ -30,9 +30,17 @@ export interface RouteCardProps {
   hovered: boolean;
   onSelect: () => void;
   onHover: (hovered: boolean) => void;
+  className?: string;
 }
 
-export function RouteCard({ route, selected, hovered, onSelect, onHover }: RouteCardProps) {
+export function RouteCard({
+  route,
+  selected,
+  hovered,
+  onSelect,
+  onHover,
+  className = "",
+}: RouteCardProps) {
   const style = ROUTE_STYLES[route.label] ?? ROUTE_STYLES.recommended;
   const score = route.safety.value;
 
@@ -50,7 +58,7 @@ export function RouteCard({ route, selected, hovered, onSelect, onHover }: Route
         selected
           ? "border-primary/40 bg-surface-hover shadow-lg shadow-primary/8"
           : "border-border hover:border-primary/30 hover:bg-surface-hover"
-      } ${hovered && !selected ? "shadow-md" : ""}`}
+      } ${hovered && !selected ? "shadow-md" : ""} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -99,6 +107,16 @@ export function RouteCard({ route, selected, hovered, onSelect, onHover }: Route
         {route.uncertainty !== undefined ? (
           <span className="text-[10px] text-text-muted">
             Uncertainty: {Math.round(route.uncertainty * 100)}%
+          </span>
+        ) : null}
+        {route.high_risk_fraction !== undefined && route.high_risk_fraction > 0 ? (
+          <span className="text-[10px] text-danger">
+            High-risk share: {Math.round(route.high_risk_fraction * 100)}%
+          </span>
+        ) : null}
+        {route.risk_exposure_m !== undefined && route.risk_exposure_m > 0 ? (
+          <span className="text-[10px] text-text-muted">
+            Risky exposure: {Math.round(route.risk_exposure_m)} m
           </span>
         ) : null}
       </div>

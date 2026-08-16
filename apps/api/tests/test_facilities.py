@@ -2,6 +2,7 @@ import pytest
 from httpx import MockTransport, Response
 
 from app.facilities import FacilityFetcher, classify, validate_bbox
+from app.facilities.store import Facility, MemoryFacilityStore
 
 DELHI_BBOX = (76.9, 28.4, 77.4, 28.9)
 
@@ -107,3 +108,27 @@ def test_validate_bbox() -> None:
         validate_bbox(0.0, 91.0, 1.0, 92.0)
     with pytest.raises(ValueError):
         validate_bbox(77.4, 28.4, 76.9, 28.9)
+
+
+def test_facility_search_matches_name_case_insensitively() -> None:
+    store = MemoryFacilityStore(
+        [
+            Facility(id=1, type="police", name="Connaught Police", lon=77.23, lat=28.61),
+            Facility(id=2, type="hospital", name="All India Institute", lon=77.2, lat=28.6),
+            Facility(id=3, type="police", name="Karol Bagh Police", lon=77.19, lat=28.65),
+        ]
+    )
+    hits = store.search("connaught")
+    assert [f.id for f in hits] == [1]
+    hits = store.search("POLICE")
+    assert {f.id for f in hits} == {1, 3}
+
+
+def test_facility_search_empty_and_limit() -> None:
+    store = MemoryFacilityStore(
+        [Facility(id=1, type="police", name="Police A", lon=77.23, lat=28.61)]
+    )
+    assert store.search("") == []
+    assert store.search("   ") == []
+    assert store.search("police", limit=0) == []
+    assert store.search("nope") == []

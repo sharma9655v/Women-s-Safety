@@ -13,7 +13,7 @@ export function IconButton({
     <button
       type="button"
       aria-label={label}
-      className={`flex size-9 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition-all duration-200 hover:border-border-glow hover:bg-surface-hover hover:text-foreground active:scale-95 ${className}`}
+      className={`flex size-11 cursor-pointer items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition-all duration-200 hover:border-border-glow hover:bg-surface-hover hover:text-foreground active:scale-95 ${className}`}
       {...rest}
     >
       {children}

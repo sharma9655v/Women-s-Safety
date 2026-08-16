@@ -11,10 +11,13 @@ export function SafetyScoreCard({
   score,
   title = "Estimated Safety",
   subtitle,
+  onInspect,
 }: {
   score: SafetyScore;
   title?: string;
   subtitle?: string;
+  /** Opens the evidence drawer for this score. */
+  onInspect?: () => void;
 }) {
   const tone =
     score.band === "high"
@@ -45,7 +48,20 @@ export function SafetyScoreCard({
         ) : null}
       </div>
 
+      <p className="max-w-[18rem] text-center text-[11px] leading-relaxed text-text-muted">
+        This is an estimate from available evidence, not a guarantee of safety.
+      </p>
+
       {subtitle ? <p className="text-center text-[11px] text-text-muted">{subtitle}</p> : null}
+      {onInspect ? (
+        <button
+          type="button"
+          onClick={onInspect}
+          className="min-h-11 cursor-pointer rounded-xl border border-border px-3 text-xs font-semibold text-primary transition-colors hover:bg-primary/8 hover:text-primary-hover"
+        >
+          Why this score? — evidence sources
+        </button>
+      ) : null}
     </Card>
   );
 }

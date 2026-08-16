@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.segments import map_match
+from app.segments import map_match, nearest_road_distance_m
 from app.segments.matcher import RoadSegment
 from app.segments.store import MemorySegmentStore
 
@@ -38,6 +38,26 @@ def test_matcher_empty_inputs() -> None:
     seg = RoadSegment(id=1, geometry=((77.2, 28.6), (77.205, 28.6)))
     assert map_match([], [seg]) == []
     assert map_match(ROUTE_COORDS, []) == []
+
+
+def test_nearest_road_distance_on_network() -> None:
+    store = MemorySegmentStore.from_geojson(FIXTURES / "segments.geojson")
+    # (77.2, 28.6) is the route start, on the corridor itself.
+    distance = nearest_road_distance_m(77.2, 28.6, store.all())
+    assert distance is not None
+    assert distance < 10.0
+
+
+def test_nearest_road_distance_off_network() -> None:
+    store = MemorySegmentStore.from_geojson(FIXTURES / "segments.geojson")
+    # ~0.02 deg away from the corridor (~1.7 km at Delhi latitude).
+    distance = nearest_road_distance_m(77.18, 28.57, store.all())
+    assert distance is not None
+    assert distance > 500.0
+
+
+def test_nearest_road_distance_no_segments() -> None:
+    assert nearest_road_distance_m(77.2, 28.6, []) is None
 
 
 def test_matcher_reversed_route_order_is_detected() -> None:

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="icon-title">
+  <title id="icon-title">Map for Women</title>
+  <rect width="512" height="512" rx="112" fill="#0d1117"/>
+  <path d="M256 96 384 148v104c0 88-56 148-128 172-72-24-128-84-128-172V148L256 96z" fill="none" stroke="#8b7dff" stroke-width="36" stroke-linejoin="round"/>
+  <path d="M200 262l40 40 74-82" fill="none" stroke="#8b7dff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

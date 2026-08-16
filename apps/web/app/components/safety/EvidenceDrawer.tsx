@@ -1,19 +1,21 @@
 "use client";
 
-import { AlertCircle, Database, ShieldCheck } from "lucide-react";
+import { AlertCircle, Boxes, Database, ShieldCheck } from "lucide-react";
 import { Drawer } from "@/app/components/ui/Drawer";
 import { Progress } from "@/app/components/ui/Progress";
-import type { SafetyEvidence } from "@/lib/types";
+import type { ModelsCurrent, SafetyEvidence } from "@/lib/types";
 import { FreshnessBadge } from "./FreshnessBadge";
 
 export function EvidenceDrawer({
   open,
   onClose,
   evidence,
+  models,
 }: {
   open: boolean;
   onClose: () => void;
   evidence: SafetyEvidence | null;
+  models?: ModelsCurrent | null;
 }) {
   if (!evidence) return null;
 
@@ -93,6 +95,43 @@ export function EvidenceDrawer({
               </span>
             </div>
             <Progress value={Math.round(evidence.coverage * 100)} tone="primary" />
+          </div>
+        ) : null}
+
+        {models ? (
+          <div className="rounded-xl border border-border bg-surface p-3">
+            <div className="flex items-center gap-2">
+              <Boxes className="size-3.5 text-text-muted" aria-hidden />
+              <h4 className="text-xs font-semibold text-text-muted uppercase tracking-wide">
+                Model traceability
+              </h4>
+            </div>
+            <dl className="mt-2 space-y-1 text-[11px] text-text-muted">
+              <div className="flex justify-between gap-3">
+                <dt>Risk model</dt>
+                <dd className="text-right font-mono text-foreground">{models.risk_model}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt>Evidence model</dt>
+                <dd className="text-right font-mono text-foreground">{models.evidence_model}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt>Datasets</dt>
+                <dd className="text-right font-mono text-foreground">
+                  {models.dataset_versions.join(", ") || "—"}
+                </dd>
+              </div>
+              {models.ml_gate && (
+                <div className="flex justify-between gap-3">
+                  <dt>ML gate</dt>
+                  <dd className="text-right">
+                    {models.ml_gate.open
+                      ? "open — model scoring active"
+                      : `closed — awaiting ${models.ml_gate.min_verified_observations} verified observations over ${models.ml_gate.min_span_days} days`}
+                  </dd>
+                </div>
+              )}
+            </dl>
           </div>
         ) : null}
 

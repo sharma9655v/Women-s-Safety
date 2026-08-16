@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, MoveRight, ShieldCheck } from "lucide-react";
+import { Clock, GaugeCircle, MoveRight, ShieldAlert, ShieldCheck } from "lucide-react";
 import { Button } from "@/app/components/ui/Button";
 import { Drawer } from "@/app/components/ui/Drawer";
 import { Progress } from "@/app/components/ui/Progress";
@@ -64,6 +64,68 @@ export function RouteComparisonDrawer({
               <div>
                 <div className="flex items-center justify-between text-xs text-text-muted mb-1">
                   <span className="flex items-center gap-1">
+                    <ShieldAlert className="size-3" aria-hidden /> Modeled risk
+                  </span>
+                  {typeof route.risk_probability === "number" &&
+                  Number.isFinite(route.risk_probability) ? (
+                    <span>{Math.round(route.risk_probability * 100)}%</span>
+                  ) : (
+                    <span>Risk unavailable</span>
+                  )}
+                </div>
+                {typeof route.risk_probability === "number" &&
+                Number.isFinite(route.risk_probability) ? (
+                  <Progress
+                    value={Math.round(route.risk_probability * 100)}
+                    tone={
+                      route.risk_probability >= 0.5
+                        ? "danger"
+                        : route.risk_probability >= 0.3
+                          ? "warning"
+                          : "success"
+                    }
+                  />
+                ) : (
+                  <p className="text-[10px] text-text-muted">
+                    The backend did not return a risk value for this route.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-xs text-text-muted mb-1">
+                  <span className="flex items-center gap-1">
+                    <GaugeCircle className="size-3" aria-hidden /> Confidence
+                  </span>
+                  {typeof route.confidence_value === "number" &&
+                  Number.isFinite(route.confidence_value) ? (
+                    <span>{Math.round(route.confidence_value * 100)}%</span>
+                  ) : (
+                    <span>Confidence unavailable</span>
+                  )}
+                </div>
+                {typeof route.confidence_value === "number" &&
+                Number.isFinite(route.confidence_value) ? (
+                  <Progress
+                    value={Math.round(route.confidence_value * 100)}
+                    tone={
+                      route.confidence_value >= 0.7
+                        ? "success"
+                        : route.confidence_value >= 0.4
+                          ? "warning"
+                          : "danger"
+                    }
+                  />
+                ) : (
+                  <p className="text-[10px] text-text-muted">
+                    The backend did not return a confidence value for this route.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between text-xs text-text-muted mb-1">
+                  <span className="flex items-center gap-1">
                     <MoveRight className="size-3" aria-hidden /> Distance
                   </span>
                   <span>{formatDistance(route.distance_m)}</span>
@@ -89,7 +151,8 @@ export function RouteComparisonDrawer({
         ))}
 
         <p className="text-center text-[10px] text-text-muted">
-          Safety scores are estimates based on available evidence. They are not guarantees.
+          Safety, risk and confidence are model estimates based on available evidence. They are not
+          guarantees.
         </p>
       </div>
     </Drawer>

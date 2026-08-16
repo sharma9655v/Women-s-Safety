@@ -1,9 +1,11 @@
 "use client";
 
 import { AlertCircle, Clock, Crosshair, Loader2, MapPin, Mic, Navigation, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Card } from "@/app/components/ui/Card";
+import { fetchGeocode } from "@/lib/api";
+import type { GeocodeResult } from "@/lib/types";
 import { TransportSelector } from "./TransportSelector";
 
 export const PLACE_SUGGESTIONS = [
@@ -74,6 +76,65 @@ export function RoutePlanner({
   const [listenLang, setListenLang] = useState<"hi-IN" | "en-IN">("hi-IN");
   const [listening, setListening] = useState(false);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [geoResults, setGeoResults] = useState<{
+    origin: GeocodeResult[];
+    destination: GeocodeResult[];
+  }>({ origin: [], destination: [] });
+
+  // Debounced geocode lookup for both fields. Offline (or API unreachable)
+  // it silently falls back to the static PLACE_SUGGESTIONS — the datalist
+  // always includes them, so the planner keeps working air-gapped.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (origin.trim().length >= 2 && navigator.onLine) {
+        fetchGeocode(origin)
+          .then((results) => setGeoResults((prev) => ({ ...prev, origin: results })))
+          .catch(() => {});
+      } else {
+        setGeoResults((prev) => ({ ...prev, origin: [] }));
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [origin]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (destination.trim().length >= 2 && navigator.onLine) {
+        fetchGeocode(destination)
+          .then((results) => setGeoResults((prev) => ({ ...prev, destination: results })))
+          .catch(() => {});
+      } else {
+        setGeoResults((prev) => ({ ...prev, destination: [] }));
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [destination]);
+
+  const originOptions = useMemo(() => {
+    const known = new Map<string, { label: string; lat: number; lon: number }>();
+    for (const p of PLACE_SUGGESTIONS) known.set(p.label.toLowerCase(), p);
+    for (const r of geoResults.origin)
+      known.set(r.name.toLowerCase(), { label: r.name, lat: r.lat, lon: r.lon });
+    return Array.from(known.values());
+  }, [geoResults.origin]);
+
+  const destOptions = useMemo(() => {
+    const known = new Map<string, { label: string; lat: number; lon: number }>();
+    for (const p of PLACE_SUGGESTIONS) known.set(p.label.toLowerCase(), p);
+    for (const r of geoResults.destination)
+      known.set(r.name.toLowerCase(), { label: r.name, lat: r.lat, lon: r.lon });
+    return Array.from(known.values());
+  }, [geoResults.destination]);
+
+  const applySuggestion = (value: string, target: "origin" | "destination") => {
+    const pool = target === "origin" ? originOptions : destOptions;
+    const hit = pool.find((p) => p.label.toLowerCase() === value.trim().toLowerCase());
+    if (hit) {
+      const c = { lat: hit.lat, lon: hit.lon };
+      if (target === "origin") setOriginCoords(c);
+      else setDestCoords(c);
+    }
+  };
 
   const canSearch = origin.trim().length >= 2 && destination.trim().length >= 2;
 
@@ -112,6 +173,10 @@ export function RoutePlanner({
   };
 
   const listen = (target: "origin" | "destination") => {
+    if (!navigator.onLine) {
+      setVoiceError("Voice input needs an internet connection — type the place name instead.");
+      return;
+    }
     const Ctor = speechRecognitionCtor();
     if (!Ctor) {
       setVoiceError("Voice input needs Chrome or Edge.");
@@ -139,7 +204,9 @@ export function RoutePlanner({
       setVoiceError(
         e.error === "not-allowed"
           ? "Microphone permission was denied."
-          : "Voice input failed. Try again.",
+          : e.error === "network" || e.error === "service-not-allowed"
+            ? "Voice input needs an internet connection — type the place name instead."
+            : "Voice input failed. Try again.",
       );
     };
     rec.onend = () => setListening(false);
@@ -153,11 +220,15 @@ export function RoutePlanner({
   };
 
   return (
-    <Card className="space-y-3">
+    <Card className="route-planner-card space-y-3">
       <h2 className="flex items-center gap-2 text-sm font-bold text-foreground">
         <Navigation className="size-4 text-primary" aria-hidden />
         Plan a Route
       </h2>
+      <p className="-mt-1 text-xs leading-relaxed text-text-muted">
+        Start with where you are, then choose where you want to go. We will compare three estimates
+        using available evidence.
+      </p>
 
       <div className="space-y-2">
         <div className="relative">
@@ -171,14 +242,15 @@ export function RoutePlanner({
             onChange={(e) => {
               setOrigin(e.target.value);
               setOriginCoords(null);
+              applySuggestion(e.target.value, "origin");
             }}
             placeholder="Starting point"
             aria-label="Starting point"
             list="origin-suggestions"
-            className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-20 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border bg-surface pl-10 pr-24 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:outline-none"
           />
           <datalist id="origin-suggestions">
-            {PLACE_SUGGESTIONS.map((p) => (
+            {originOptions.map((p) => (
               <option key={p.label} value={p.label} />
             ))}
           </datalist>
@@ -188,7 +260,7 @@ export function RoutePlanner({
                 type="button"
                 onClick={clearOrigin}
                 aria-label="Clear starting point"
-                className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
+                className="flex size-10 cursor-pointer items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-surface-hover hover:text-foreground"
               >
                 <X className="size-3.5" aria-hidden />
               </button>
@@ -199,7 +271,7 @@ export function RoutePlanner({
               disabled={locating}
               aria-label="Use my current location"
               title="Use my current location"
-              className="flex size-7 cursor-pointer items-center justify-center rounded-lg text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
+              className="flex size-10 cursor-pointer items-center justify-center rounded-lg text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
             >
               {locating ? (
                 <Loader2 className="size-3.5 animate-spin" aria-hidden />
@@ -221,14 +293,15 @@ export function RoutePlanner({
             onChange={(e) => {
               setDestination(e.target.value);
               setDestCoords(null);
+              applySuggestion(e.target.value, "destination");
             }}
             placeholder="Destination — say it or type it"
             aria-label="Destination"
             list="dest-suggestions"
-            className="h-10 w-full rounded-xl border border-border bg-surface pl-9 pr-20 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:outline-none"
+            className="h-12 w-full rounded-xl border border-border bg-surface pl-10 pr-24 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:outline-none"
           />
           <datalist id="dest-suggestions">
-            {PLACE_SUGGESTIONS.map((p) => (
+            {destOptions.map((p) => (
               <option key={p.label} value={p.label} />
             ))}
           </datalist>
@@ -237,7 +310,7 @@ export function RoutePlanner({
               value={listenLang}
               onChange={(e) => setListenLang(e.target.value as "hi-IN" | "en-IN")}
               aria-label="Voice input language"
-              className="h-7 cursor-pointer rounded-lg border border-border bg-surface px-1 text-[10px] text-text-muted focus:outline-none"
+              className="h-10 cursor-pointer rounded-lg border border-border bg-surface px-1 text-[10px] text-text-muted focus:outline-none"
             >
               <option value="hi-IN">हिंदी</option>
               <option value="en-IN">English</option>
@@ -248,7 +321,7 @@ export function RoutePlanner({
               disabled={listening}
               aria-label="Speak destination"
               title="Speak destination"
-              className={`flex size-7 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${
+              className={`flex size-10 cursor-pointer items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${
                 listening
                   ? "bg-emergency/15 text-emergency animate-ring-pulse"
                   : "text-primary hover:bg-primary/10"
@@ -287,7 +360,7 @@ export function RoutePlanner({
               type="button"
               aria-pressed={simulateNight === option.id}
               onClick={() => setSimulateNight(option.id)}
-              className={`rounded-full px-3 py-1 text-[11px] font-medium transition-colors duration-150 ${
+              className={`min-h-10 rounded-full px-3 py-1 text-[11px] font-medium transition-colors duration-150 ${
                 simulateNight === option.id
                   ? "bg-primary/15 text-primary-hover"
                   : "text-text-muted hover:bg-surface-hover hover:text-foreground"
@@ -301,7 +374,7 @@ export function RoutePlanner({
 
       <Button fullWidth loading={loading} disabled={!canSearch} onClick={submit}>
         <Navigation className="size-4" aria-hidden />
-        Find Safe Route
+        Plan Route
       </Button>
 
       {error ? (

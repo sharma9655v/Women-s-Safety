@@ -5,24 +5,35 @@ import hashlib
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 
 from app.config import settings
 from app.evidence.registry import get_evidence_store
+from app.evidence.states import VerificationState
 from app.evidence.store import EvidenceStore
 from app.reports import get_reports_store
 from app.reports.limiter import RateLimiter, client_key, get_rate_limiter
 from app.reports.redact import encrypt_blob, redact_description, strip_image_metadata
 from app.reports.spam import DuplicateDetector, get_duplicate_detector, report_key
 from app.reports.store import ReportStore
-from app.schemas import RecomputeRequest, RecomputeResponse, ReportRequest, ReportResponse
+from app.schemas import (
+    AdminReport,
+    AdminReportListResponse,
+    AdminVerificationResponse,
+    RecomputeRequest,
+    RecomputeResponse,
+    ReportRequest,
+    ReportResponse,
+    QuickReportRequest,
+    QuickReportResponse,
+)
 
 router = APIRouter(prefix="/api", tags=["reports"])
 
 MODEL_VERSION = "evidence-baseline-v1"
 
-# Development-only fallback so local demos can exercise admin endpoints.
-# Production must set ADMIN_KEY in the environment.
+# Development-only fallback, active only when ADMIN_DEV_KEY_ENABLED=1 AND
+# APP_ENV=development. Production must set ADMIN_KEY in the environment.
 DEV_ADMIN_KEY = "dev-admin-key"
 
 
@@ -44,7 +55,7 @@ def _require_admin(x_admin_key: str) -> str:
     if settings.admin_key:
         if not secrets.compare_digest(x_admin_key, settings.admin_key):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Invalid admin key")
-    elif settings.app_env == "development":
+    elif settings.app_env == "development" and settings.admin_dev_key_enabled:
         if not secrets.compare_digest(x_admin_key, DEV_ADMIN_KEY):
             raise HTTPException(status.HTTP_403_FORBIDDEN, "Invalid admin key")
     else:
@@ -99,6 +110,47 @@ def create_report(
     )
 
 
+@router.post(
+    "/reports/quick",
+    response_model=QuickReportResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_quick_report(
+    payload: QuickReportRequest,
+    request: Request,
+    evidence: Annotated[EvidenceStore, Depends(get_evidence_store)],
+    reports: Annotated[ReportStore, Depends(get_reports_store)],
+    limiter: Annotated[RateLimiter, Depends(get_rate_limiter)],
+    duplicates: Annotated[DuplicateDetector, Depends(get_duplicate_detector)],
+) -> QuickReportResponse:
+    if not evidence.segment_exists(payload.segment_id):
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown segment id: {payload.segment_id}")
+
+    client = client_key(request)
+    dup_key = report_key(payload.segment_id, payload.category, payload.description or "", client)
+    if duplicates.is_duplicate(dup_key):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Duplicate report — already received")
+    if not limiter.allow(client):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many reports — try again later")
+
+    redacted = redact_description(payload.description) if payload.description is not None else None
+    report_id = reports.insert_report(
+        segment_id=payload.segment_id,
+        category=payload.category,
+        description_redacted=redacted,
+        client_hash=client,
+        image_encrypted=None,
+    )
+    duplicates.record(dup_key)
+
+    return QuickReportResponse(
+        report_id=report_id,
+        segment_id=payload.segment_id,
+        category=payload.category,
+        verification_state="REPORTED",
+    )
+
+
 @router.post("/admin/recompute", response_model=RecomputeResponse)
 def recompute(
     payload: RecomputeRequest,
@@ -129,3 +181,89 @@ def recompute(
         {"segment_id": None, "recomputed": changed, "segments": segments},
     )
     return RecomputeResponse(recomputed=changed, segments=segments)
+
+
+@router.get("/admin/reports", response_model=AdminReportListResponse)
+def list_reports_for_review(
+    reports: Annotated[ReportStore, Depends(get_reports_store)],
+    x_admin_key: Annotated[str, Header()] = "",
+    limit: int = Query(default=50, ge=1, le=200),
+) -> AdminReportListResponse:
+    """Admin review queue: verification states only.
+
+    Privacy contract: report content (description, image, client hash) is
+    never returned — an operator sees id/segment/category/state/date only.
+    """
+    _require_admin(x_admin_key)
+    return AdminReportListResponse(
+        reports=[
+            AdminReport(
+                report_id=report.id,
+                segment_id=report.segment_id,
+                category=report.category,
+                verification_state=report.verification_state.value,
+                reported_at=report.reported_at.isoformat(),
+                confidence=report.confidence,
+            )
+            for report in reports.list_reports(limit)
+        ]
+    )
+
+
+@router.post(
+    "/admin/reports/{report_id}/verify",
+    response_model=AdminVerificationResponse,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Unknown report id"},
+    },
+)
+def verify_report(
+    report_id: int,
+    reports: Annotated[ReportStore, Depends(get_reports_store)],
+    x_admin_key: Annotated[str, Header()] = "",
+) -> AdminVerificationResponse:
+    """Manually mark a report VERIFIED (sticky in the state machine).
+
+    The segment is recomputed afterwards so sibling observations reconcile;
+    the decision is audited with the admin key hash.
+    """
+    return _set_verification(report_id, VerificationState.VERIFIED, "verify", reports, x_admin_key)
+
+
+@router.post(
+    "/admin/reports/{report_id}/reject",
+    response_model=AdminVerificationResponse,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"description": "Unknown report id"},
+    },
+)
+def reject_report(
+    report_id: int,
+    reports: Annotated[ReportStore, Depends(get_reports_store)],
+    x_admin_key: Annotated[str, Header()] = "",
+) -> AdminVerificationResponse:
+    """Manually mark a report REJECTED (sticky; excluded from scoring).
+
+    Same recompute + audit contract as verify.
+    """
+    return _set_verification(
+        report_id, VerificationState.REJECTED, "reject", reports, x_admin_key
+    )
+
+
+def _set_verification(
+    report_id: int,
+    state: VerificationState,
+    action: str,
+    reports: ReportStore,
+    x_admin_key: str,
+) -> AdminVerificationResponse:
+    admin_hash = _require_admin(x_admin_key)
+    report = reports.set_verification(report_id, state)
+    if report is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown report id: {report_id}")
+    # VERIFIED/REJECTED are sticky in the state machine; recompute reconciles
+    # sibling observations on the same segment afterwards.
+    reports.recompute_segment(report.segment_id)
+    reports.audit(action, admin_hash, {"report_id": report_id, "state": state.value})
+    return AdminVerificationResponse(report_id=report_id, verification_state=state.value)

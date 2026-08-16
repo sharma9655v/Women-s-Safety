@@ -52,7 +52,7 @@ export function AlertCard({ alert }: { alert: Incident }) {
 
 export function LiveAlertsList({
   alerts,
-  title = "Live Alerts",
+  title = "Recent Incident Reports",
 }: {
   alerts: Incident[];
   title?: string;

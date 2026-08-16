@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from functools import lru_cache
 
-from sqlalchemy import create_engine
+from app.db import make_engine
 
 from app.config import settings
 from app.overlays.store import (
@@ -43,7 +43,7 @@ def get_overlay_store() -> OverlayStore:
     evidence snapshot (offline demo path)."""
     if settings.database_url and settings.database_url != "":
         try:
-            engine = create_engine(settings.database_url)
+            engine = make_engine()
             with engine.connect():
                 pass
         except Exception:

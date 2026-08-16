@@ -59,6 +59,51 @@ def test_gate_report_roundtrip(tmp_path: Path) -> None:
     assert loaded["reason"] == "not enough"
 
 
+class _FakeCursor:
+    def __init__(self, row: tuple) -> None:
+        self._row = row
+
+    def fetchone(self) -> tuple:
+        return self._row
+
+
+class _FakeConn:
+    """Simulates a DB whose only VERIFIED rows are demo_seed observations.
+
+    The gate SQL must filter them out; if a query does not carry the
+    demo_seed exclusion, the fake reports 35 verified rows (all demo).
+    """
+
+    def __init__(self) -> None:
+        self._excludes_demo = False
+
+    def execute(self, sql: str, params: object = None) -> _FakeCursor:
+        self._excludes_demo = "demo_seed" in sql
+        # The WHERE clause does the filtering in a real DB: with the
+        # exclusion present, all demo rows drop out (0 verified).
+        verified = 0 if self._excludes_demo else 35
+        return _FakeCursor((verified, 35, 120.0))
+
+    def __enter__(self) -> "_FakeConn":
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        return None
+
+
+def test_gate_never_counts_demo_seed_verified(monkeypatch) -> None:
+    from ml import gate as gate_module
+
+    fake = _FakeConn()
+    monkeypatch.setattr(gate_module, "_connect", lambda url: fake)
+
+    report = gate_module.check_gate()
+
+    assert fake._excludes_demo is True
+    assert report.verified_observations == 0
+    assert report.open is False
+
+
 def test_registry_empty_and_no_active_model(tmp_path: Path) -> None:
     path = tmp_path / "registry.json"
     assert load_registry(path)["models"] == []

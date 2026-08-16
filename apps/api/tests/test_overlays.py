@@ -136,6 +136,43 @@ def test_areas_endpoint_returns_known_area_summaries():
     assert all("score" in a and "recent_incidents" in a for a in areas)
 
 
+def test_facilities_endpoint_returns_bbox_rows_with_expected_shape():
+    from app.facilities import Facility, get_facilities_store
+    from app.facilities.store import MemoryFacilityStore
+
+    app.dependency_overrides[get_facilities_store] = lambda: MemoryFacilityStore(
+        [
+            Facility(id=1, type="police", name="Police HQ", lon=77.21, lat=28.63),
+            Facility(id=2, type="hospital", name="City Hospital", lon=77.22, lat=28.64),
+        ]
+    )
+    try:
+        resp = client.get("/api/facilities")
+        assert resp.status_code == 200
+        rows = resp.json()
+        assert len(rows) == 2
+        first = rows[0]
+        assert set(first) == {"id", "type", "name", "lat", "lon", "distance_m"}
+        assert first["type"] == "police"
+        assert first["distance_m"] is None
+        assert first["lat"] == 28.63
+    finally:
+        app.dependency_overrides.pop(get_facilities_store, None)
+
+
+def test_facilities_endpoint_is_empty_without_data():
+    from app.facilities import get_facilities_store
+    from app.facilities.store import MemoryFacilityStore
+
+    app.dependency_overrides[get_facilities_store] = lambda: MemoryFacilityStore()
+    try:
+        resp = client.get("/api/facilities")
+        assert resp.status_code == 200
+        assert resp.json() == []
+    finally:
+        app.dependency_overrides.pop(get_facilities_store, None)
+
+
 def test_incidents_include_road_hazard_category():
     _override_store([_point("road_hazard", lat=28.63, lon=77.22, segment_id=1)])
     resp = client.get("/api/incidents")

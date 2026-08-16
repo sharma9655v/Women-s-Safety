@@ -98,10 +98,18 @@ def make_client(handler) -> TestClient:
             ]
         )
 
+    def override_limiter() -> object:
+        from app.reports.limiter import MemoryRateLimiter
+
+        return MemoryRateLimiter(100, 60)
+
     app.dependency_overrides[get_osrm] = override_osrm
     app.dependency_overrides[get_segments_store] = override_segments
     app.dependency_overrides[get_evidence_store] = override_evidence
     app.dependency_overrides[get_facilities_store] = override_facilities
+    from app.api.routes import get_route_rate_limiter
+
+    app.dependency_overrides[get_route_rate_limiter] = override_limiter
     return TestClient(app)
 
 
@@ -252,3 +260,51 @@ def test_routes_empty_result_is_explicit_error() -> None:
     )
     assert resp.status_code == 502
     assert "no route" in resp.json()["detail"]
+
+
+def test_routes_rate_limited_after_limit() -> None:
+    client = make_client(osrm_success_handler)
+    from app.api.routes import get_route_rate_limiter
+    from app.reports.limiter import MemoryRateLimiter
+
+    strict_limiter = MemoryRateLimiter(1, 60)
+    app.dependency_overrides[get_route_rate_limiter] = lambda: strict_limiter
+    payload = {
+        "origin": {"lat": DELHI_A.lat, "lon": DELHI_A.lon},
+        "destination": {"lat": DELHI_B.lat, "lon": DELHI_B.lon},
+    }
+    first = client.post("/api/routes", json=payload)
+    assert first.status_code == 200
+    second = client.post("/api/routes", json=payload)
+    assert second.status_code == 429
+
+
+def test_routes_off_network_endpoint_warns() -> None:
+    client = make_client(osrm_success_handler)
+    resp = client.post(
+        "/api/routes",
+        json={
+            "origin": {"lat": 28.50, "lon": 77.11},
+            "destination": {"lat": DELHI_B.lat, "lon": DELHI_B.lon},
+        },
+    )
+    assert resp.status_code == 200
+    warnings = resp.json()["routes"][0]["warnings"]
+    # The origin sits on segment 99, far from the route corridor -> the
+    # honest off-network warning must appear (the request itself still works).
+    assert any("Origin" in w and "nearest mapped road" in w for w in warnings)
+
+
+def test_routes_high_risk_fraction_exposed() -> None:
+    client = make_client(osrm_success_handler)
+    resp = client.post(
+        "/api/routes",
+        json={
+            "origin": {"lat": DELHI_A.lat, "lon": DELHI_A.lon},
+            "destination": {"lat": DELHI_B.lat, "lon": DELHI_B.lon},
+        },
+    )
+    assert resp.status_code == 200
+    first = resp.json()["routes"][0]
+    assert 0.0 <= first["high_risk_fraction"] <= 1.0
+    assert first["risk_exposure_m"] >= 0.0

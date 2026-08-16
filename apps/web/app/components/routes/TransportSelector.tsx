@@ -27,7 +27,7 @@ export function TransportSelector({
           key={mode.id}
           type="button"
           onClick={() => onChange(mode.id)}
-          className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-all duration-200 select-none ${
+          className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-all duration-200 select-none ${
             value === mode.id
               ? "bg-primary text-white shadow-sm"
               : "text-text-muted hover:bg-surface-hover hover:text-foreground"

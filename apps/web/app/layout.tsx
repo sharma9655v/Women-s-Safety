@@ -37,11 +37,30 @@ function ThemeInitScript() {
   );
 }
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/** Register the PWA service worker. Honest cache policy lives in /sw.js. */
+function ServiceWorkerScript() {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${geistMono.variable}`}>
+    <script
+      // biome-ignore lint/security/noDangerouslySetInnerHtml: static bootstrap; no user input
+      dangerouslySetInnerHTML={{
+        __html: `(function(){if(!('serviceWorker' in navigator))return;var ok=location.protocol==='https:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';if(!ok)return;addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})});})();`,
+      }}
+    />
+  );
+}
+
+export default function RootLayout({ children }: LayoutProps<"/">) {
+  // suppressHydrationWarning: the no-FOUC ThemeInitScript sets data-theme
+  // before hydration; the attribute is styling state, not markup.
+  return (
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${inter.variable} ${spaceGrotesk.variable} ${geistMono.variable}`}
+    >
       <body>
         <ThemeInitScript />
+        <ServiceWorkerScript />
         <ThemeProvider>
           <AppShell>{children}</AppShell>
         </ThemeProvider>

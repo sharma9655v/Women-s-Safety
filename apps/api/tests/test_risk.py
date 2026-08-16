@@ -227,3 +227,26 @@ def test_route_warnings_sparse_and_conflict() -> None:
 
 def test_model_version_is_baseline() -> None:
     assert MODEL_VERSION == "deterministic-baseline-v1"
+
+
+def test_high_risk_fraction_and_risk_exposure() -> None:
+    risks = [_segment_risk(1, 0.1), _segment_risk(2, 0.9), _segment_risk(3, 0.6)]
+    lengths = [100.0, 100.0, 200.0]
+    scored = score_candidate(0, 400.0, 300.0, lengths, risks)
+    # High-risk stretches (>= 0.5): segments 2 and 3 = 300 of 400 m.
+    assert scored.high_risk_fraction == pytest.approx(0.75)
+    # Exposure = sum(length x risk) = 10 + 90 + 120.
+    assert scored.risk_exposure_m == pytest.approx(220.0)
+
+
+def test_high_risk_fraction_zero_below_threshold() -> None:
+    scored = score_candidate(0, 100.0, 80.0, [100.0], [_segment_risk(1, 0.4)])
+    assert scored.high_risk_fraction == 0.0
+    assert scored.risk_exposure_m == pytest.approx(40.0)
+
+
+def test_risk_exposure_zero_without_lengths() -> None:
+    # Unknown segment lengths -> exposure is 0, honestly, not invented.
+    scored = score_candidate(0, 100.0, 80.0, [], [_segment_risk(1, 0.9)])
+    assert scored.risk_exposure_m == 0.0
+    assert 0.0 <= scored.high_risk_fraction <= 1.0

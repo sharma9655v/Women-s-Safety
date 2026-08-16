@@ -27,13 +27,18 @@ export interface RouteMapApi {
 
 export interface MapFilters {
   incidents: boolean;
+  alerts: boolean;
   lighting: boolean;
   facilities: boolean;
   heatmap: boolean;
-  crowd: boolean;
 }
 
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+const DEFAULT_TILE_URL = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+/** Configurable tile source (e.g. a local tile server for air-gapped demos).
+ * When tiles fail to load, the map degrades to a dark surface with routes,
+ * markers and popups still fully interactive. */
+const TILE_URL = process.env.NEXT_PUBLIC_TILE_URL ?? DEFAULT_TILE_URL;
 const DELHI: L.LatLngExpression = [28.62, 77.24];
 
 function incidentIcon(severity: string): L.DivIcon {
@@ -42,6 +47,15 @@ function incidentIcon(severity: string): L.DivIcon {
     html: `<span class="incident-marker incident-marker-${severity}" role="img" aria-label="Incident: ${severity} severity"></span>`,
     iconSize: [14, 14],
     iconAnchor: [7, 7],
+  });
+}
+
+function alertIcon(severity: string): L.DivIcon {
+  return L.divIcon({
+    className: "",
+    html: `<span class="alert-marker alert-marker-${severity}" role="img" aria-label="Safety alert: ${severity} severity"></span>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
   });
 }
 
@@ -88,6 +102,7 @@ interface MapCanvasProps {
   mode: "2d" | "3d";
   routes: RouteCandidate[];
   incidents: Incident[];
+  alerts: Incident[];
   lighting: (LightingObservation & { lat: number; lon: number })[];
   facilities: Facility[];
   heatZones?: { name: string; lat: number; lon: number; level: number }[];
@@ -102,6 +117,7 @@ export function MapCanvas({
   mode,
   routes,
   incidents,
+  alerts,
   lighting,
   facilities,
   heatZones = [],
@@ -116,6 +132,7 @@ export function MapCanvas({
   const routeLinesRef = useRef<Map<string, L.Polyline[]>>(new Map());
   const groupsRef = useRef<{
     incident: L.MarkerClusterGroup;
+    alert: L.LayerGroup;
     lighting: L.LayerGroup;
     facility: L.LayerGroup;
     heat: L.LayerGroup;
@@ -138,22 +155,34 @@ export function MapCanvas({
       attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a> &copy; OpenStreetMap',
       subdomains: "abcd",
       maxZoom: 20,
-    }).addTo(map);
+    })
+      .on("tileerror", (e: L.TileErrorEvent) => {
+        // Graceful degradation for air-gapped demos: drop the tile layer once
+        // tiles clearly fail; routes/markers/popups keep working on the dark
+        // surface. Honest fallback — never a fake map.
+        const target = e.tile as HTMLImageElement | null;
+        if (target) target.style.opacity = "0";
+        container.classList.add("map-no-tiles");
+      })
+      .addTo(map);
 
     const incident = L.markerClusterGroup({
       showCoverageOnHover: false,
       maxClusterRadius: 42,
       spiderfyOnMaxZoom: true,
     });
+    const alertGroup = L.layerGroup();
     const lightingGroup = L.layerGroup();
     const facilityGroup = L.layerGroup();
     const heatGroup = L.layerGroup();
     map.addLayer(incident);
+    map.addLayer(alertGroup);
     map.addLayer(lightingGroup);
     map.addLayer(facilityGroup);
     map.addLayer(heatGroup);
     groupsRef.current = {
       incident,
+      alert: alertGroup,
       lighting: lightingGroup,
       facility: facilityGroup,
       heat: heatGroup,
@@ -326,6 +355,26 @@ export function MapCanvas({
     }
   }, [incidents, filters.incidents]);
 
+  // --- alerts ---
+  useEffect(() => {
+    const group = groupsRef.current?.alert;
+    if (!group) return;
+    group.clearLayers();
+    if (!filters.alerts) return;
+    for (const alert of alerts) {
+      const marker = L.marker([alert.location.lat, alert.location.lon], {
+        icon: alertIcon(alert.severity),
+        title: alert.summary,
+      });
+      marker.bindPopup(
+        `<div class="segment-tooltip"><strong>Safety alert</strong> — ${alert.category.replace(/_/g, " ")} (${alert.severity})<br/>` +
+          `<span>${alert.summary}</span><br/>` +
+          `<span style="color:var(--color-text-muted)">${timeAgo(alert.reported_at)} · ${alert.source}</span></div>`,
+      );
+      group.addLayer(marker);
+    }
+  }, [alerts, filters.alerts]);
+
   // --- lighting ---
   useEffect(() => {
     const group = groupsRef.current?.lighting;
@@ -358,7 +407,11 @@ export function MapCanvas({
       });
       marker.bindTooltip(
         `<div class="segment-tooltip"><strong>${f.name}</strong><br/>` +
-          `<span style="color:var(--color-text-muted)">${f.type.replace(/_/g, " ")} · ${f.distance_m}m away</span></div>`,
+          `<span style="color:var(--color-text-muted)">${f.type.replace(/_/g, " ")} · ${
+            typeof f.distance_m === "number" && Number.isFinite(f.distance_m)
+              ? `${Math.round(f.distance_m)}m away`
+              : "distance unknown"
+          }</span></div>`,
         { direction: "top" },
       );
       group.addLayer(marker);

@@ -41,9 +41,10 @@ traceable, tested, and versioned.
 - Insights page with area safety scores and area comparison
 - Civic Operations page (streetlight-failure worklist, incident categories, priority areas)
 - SOS panel with configurable emergency contacts and live-location sharing
-- Voice input (हिंदी / English) and geolocation in the route planner
+- Voice input (हिंदी / English), geolocation, and live place search in the route planner
+- Review Queue page: admin verify/reject of community reports (key-gated, audited)
 - Dockerized 5-service stack and a one-command demo
-- Automated testing: 109 Python tests, Playwright E2E suites, CI workflow
+- Automated testing: 221 Python tests, Playwright E2E suites, CI workflow
 
 ### Planned / Gated
 
@@ -52,7 +53,7 @@ traceable, tested, and versioned.
   (see [Machine Learning](#machine-learning)).
 - Larger validated dataset (real civic/NGO/helpline feeds — demo data is illustrative)
 - Multi-city validation (the OSRM graph ships with a Northern-Zone/Delhi extract)
-- Production-scale deployment (CORS is currently locked to localhost:3000; no load testing)
+- Production-scale deployment (CORS defaults to localhost:3000, configurable via the `CORS_ORIGINS` env var; no load testing)
 
 ## Problem
 
@@ -391,8 +392,9 @@ Datasets are versioned via manifests in `data/versions/` (sha256 recorded).
 `POST /api/reports` implements an anonymous, validated reporting pipeline:
 
 1. **Validation** — category enum, description ≤ 500 chars, optional base64
-   image ≤ 5 MB
-2. **Pseudonymization** — `client_key = sha256(IP)[:16]`; the raw IP is never stored
+   image ≤ 5 MB (the report page uploads JPEG/PNG up to 3.5 MB)
+2. **Pseudonymization** — `client_key = sha256(request.client.host)[:16]`; the raw IP is never stored.
+   `X-Forwarded-For` is ignored unless `TRUST_PROXY=1` (never trust a spoofable header by default)
 3. **PII redaction** — emails, phone numbers, URLs, and IPs in descriptions → `[redacted]`
 4. **Image handling** — re-encoded via Pillow (EXIF metadata stripped), then
    Fernet-encrypted at rest
@@ -520,6 +522,20 @@ three pairs the routes coincide (no evidence difference between candidates).
 The experiment demonstrates the full lifecycle the system models: report →
 conflict → corroboration → verification → decay.
 
+### Component ablation and synthetic calibration (2026-08-15)
+
+Recorded runs (`ablation-*.json`, `calibration-*.json`):
+
+- Leave-one-out ablation on a synthetic night corridor: incident evidence
+  contributes 0.587 (61%) of risk, lighting 0.307 (32%), road 0.051 (5%),
+  facility 0.017 (2%); night vs day ratio ×1.73. The mirrored component math
+  is test-verified to reproduce `compute_segment_risk` exactly.
+- Synthetic calibration over a 240-segment ground-truth grid: ECE 0.003,
+  Brier excess over ideal 0.004, mean abs error 0.003. Ordering (Spearman
+  1.0) is exact *by construction*; the run validates internal calibration
+  only — real calibration needs observed outcomes from validated feeds
+  (gated, none exist).
+
 ## API
 
 Base URL: `http://localhost:8000` · Health: `http://localhost:8000/health` ·
@@ -528,8 +544,9 @@ OpenAPI/Swagger: `http://localhost:8000/docs`
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | GET | `/health` | Service health + environment |
-| POST | `/api/routes` | Route planning: 3 explainable profiles; optional `hour_ist` override |
-| GET | `/api/segments/{id}/evidence` | Aggregate evidence per segment (freshness, confidence, source counts, conflicts) — never reporter identity |
+| POST | `/api/routes` | Route planning: 3 explainable profiles, risk exposure + high-risk share, off-network warnings; optional `hour_ist` override; per-IP rate limit (`ROUTE_RATE_LIMIT_PER_MINUTE`, default 30) |
+| GET | `/api/geocode` | Place search (monitored areas + mapped facilities, by name) |
+| GET | `/api/segments/{id}/evidence` | Aggregate evidence per segment (freshness, confidence, source counts, source-type diversity, conflicts) — never reporter identity |
 | GET | `/api/incidents` | Incident markers (bbox + limit) |
 | GET | `/api/lighting` | Lighting / streetlight markers |
 | GET | `/api/alerts` | Recent incident alerts |
@@ -537,8 +554,20 @@ OpenAPI/Swagger: `http://localhost:8000/docs`
 | GET | `/api/safety/areas` | All monitored areas (comparison) |
 | GET | `/api/safety/heatmap` | Risk heatmap zones |
 | POST | `/api/reports` | Anonymous report (validated, redacted, deduplicated, rate-limited) |
+| GET | `/api/admin/reports` | Review queue — reports listed without descriptions or reporter identity (`X-Admin-Key` required) |
+| POST | `/api/admin/reports/{id}/verify` | Mark a report verified (sticky across recomputes, audited) |
+| POST | `/api/admin/reports/{id}/reject` | Mark a report rejected (sticky across recomputes, audited) |
 | POST | `/api/admin/recompute` | Recompute verification states (`X-Admin-Key` required, audited) |
 | GET | `/api/models/current` | Active model + dataset versions + ML gate status |
+| POST | `/api/auth/device` | Mint a revocable device-session token for the requesting `client_id` (rate-limited) |
+| POST | `/api/auth/revoke` | Revoke the current device-session token |
+| GET | `/api/facilities` | Safety-relevant facilities in a bbox (police, hospital, transit, ...) |
+| GET | `/api/privacy/settings` · PUT | Read / update privacy settings (voice guidance, discreet mode) |
+| GET | `/api/notifications` | Recent in-app notification events for the client |
+
+Device-session tokens (30-day TTL) are required for all personal-safety
+endpoints; raw `X-Client-Id` access is disabled by default
+(`ALLOW_LEGACY_CLIENT_ID=0`). See [`docs/current-status.md`](docs/current-status.md).
 
 Full contract: [`api-spec.md`](api-spec.md).
 
@@ -564,7 +593,7 @@ infra               Docker Compose (postgis, redis, osrm, api, web) + backup.ps1
 data                OSM extracts, loaders, processed evidence, versioned manifests (gitignored artifacts)
 docs                Demo kit + privacy review (demo.md, sih-demo.md, pitch.html, privacy-review.md)
 ml                  Gated ML workspace: gate, eval, dataset, model registry, train (refuses while gate closed)
-research            Offline experiment harness: baselines, stress, lifecycle + recorded artifacts
+research            Offline experiment harness: baselines, stress, lifecycle, ablation, calibration + recorded artifacts
 e2e                 Playwright E2E smoke suites (verify / verify-extra / theme-check)
 .github/workflows   CI: ruff, mypy, pytest on push/PR
 ```
@@ -591,7 +620,10 @@ uv sync --directory apps/api
 
 No API keys are required for local development. `ADMIN_KEY` and
 `REPORT_ENCRYPTION_KEY` are optional in development (development-only
-fallbacks exist) but must be set outside development.
+fallbacks exist — the encryption fallback is a random key persisted to
+`.report_encryption_key`, and the dev admin key is inert unless
+`ADMIN_DEV_KEY_ENABLED=1` in a `development` environment) but must be set
+outside development.
 
 ## Docker Setup
 
@@ -656,12 +688,12 @@ also emits `data/processed/demo-evidence.json` plus a versioned manifest.
 ## Testing
 
 ```bash
-# API: ruff + mypy + 89 pytest tests (scoring, evidence, reports, overlays, gates)
+# API: ruff + mypy + pytest tests (scoring, evidence, reports, overlays, geocode, gates, feeds, security, auth)
 uv run --directory apps/api ruff check app tests
 uv run --directory apps/api mypy app
 uv run --directory apps/api pytest apps/api/tests -q
 
-# ML (17 tests) and research (3 tests) workspaces
+# ML (18 tests) and research (21 tests) workspaces
 uv run --directory ml pytest -q
 uv run --directory research pytest -q
 
@@ -677,8 +709,9 @@ node e2e/theme-check.js      # light/dark/system theme behavior
 
 CI (`.github/workflows/ci.yml`) runs `ruff check`, `ruff format --check`,
 `mypy`, and `pytest` on every push and pull request. Latest recorded runs:
-**109 Python tests green** (89 API + 17 ML + 3 research), **26/26 + 8/8 E2E
-checks** and all theme checks passing.
+**221 Python tests green** (197 API + 9 security + 8 auth + 3 observability +
+2 emergency rate limits + 2 facilities), **26/26 + 8/8 E2E checks** and all
+theme checks passing.
 
 ## Limitations
 
@@ -695,10 +728,59 @@ checks** and all theme checks passing.
   recomputation; there is no automated cross-validation yet.
 - **No field validation or load testing** — no large-scale user trial, no
   production load tests, no real-time sensor integration.
-- **Operational gaps** — CORS allows only `http://localhost:3000`; admin audit
-  has no UI (SQL-only review); rate limits are per-IP-hash.
+- **Operational gaps** — CORS defaults to `http://localhost:3000` (configurable via `CORS_ORIGINS`); admin audit
+  has no full audit-trail UI (SQL-only for history; the Review Queue covers verify/reject);
+  rate limits are per-IP-hash.
 - **Demo-resilient, not fully offline** — the offline fallback is an in-memory
   evidence snapshot, not device-level caching (no PWA).
+
+## Real data feeds (P2 groundwork)
+
+`apps/api/app/ingest_feed.py` is a validated ingestion harness for real
+civic/NGO feeds. It ships with zero real data — it is the checked path that
+real feeds will take, and it enforces the evidence-integrity rules on every
+row:
+
+- required schema (segment id, observation type, JSON value, ISO-8601
+  observed_at, reliability, verification state) with strict type checks;
+- observation types limited to the evidence vocabulary; reliability in
+  `[0, 1]`; **future-dated observations rejected**;
+- reporter identity is never stored: PII/free-text columns (`description`,
+  `reporter`, `email`, ...) are dropped with a warning or rejected, never
+  written;
+- duplicates dropped via the canonical `evidence_hash` (same idempotent
+  `ON CONFLICT DO NOTHING` as the demo seeder);
+- provenance is mandatory (`--source` feed name + `--licence`) and recorded in
+  a versioned manifest (sha256) next to a snapshot under `data/versions/`;
+- dry run by default; DB writes only with an explicit `--write` flag;
+- any invalid row aborts the run — a feed is never partially ingested.
+
+```bash
+uv run --directory apps/api python -m app.ingest_feed feeds/my-feed.csv \
+  --source my_feed --licence "CC BY 4.0"          # dry run
+uv run --directory apps/api python -m app.ingest_feed feeds/my-feed.jsonl \
+  --source my_feed --licence "CC BY 4.0" --write  # insert into PostGIS
+```
+
+Rows ingested this way count toward the ML gate only once VERIFIED (the
+harness prints this warning on every run).
+
+**First real feed — OpenStreetMap (Delhi).** `apps/api/app/osm_feed.py` fetches
+live OSM data from the public Overpass API (ODbL), maps attribute tags onto the
+evidence vocabulary (`lit=no` → `poor_lighting`, `sidewalk=no` → `blocked_sidewalk`,
+unpaved surfaces → `road_hazard`), resolves OSM way ids to routing-graph
+segment ids (`road_segments.osm_way_id`; ways absent from the graph are skipped
+and counted), and feeds the harness. Recorded run (2026-08-15): **3,535
+observations across 3,487 graph segments** written to PostGIS as
+`source_type='osm'`, state REPORTED, `observed_at` = fetch date, reliability
+0.7. Snapshot + sha256 manifest in `data/versions/` (`feed-osm-*.json`).
+OSM rows are crowd-sourced and unverified: they do not count toward the ML
+gate and are not VERIFIED until the admin Review Queue confirms them.
+
+```bash
+uv run --directory apps/api python -m app.osm_feed           # fetch + validate (dry run)
+uv run --directory apps/api python -m app.osm_feed --write   # fetch + insert into PostGIS
+```
 
 ## Roadmap
 
@@ -706,13 +788,14 @@ checks** and all theme checks passing.
 | --- | --- |
 | Deterministic GIS routing + evidence pipeline | DONE |
 | Rule-based safety scoring, freshness, uncertainty | DONE |
-| Scoring, evidence, report, overlay tests (89 API tests) | DONE |
+| Scoring, evidence, report, overlay, geocode, feed tests (136 API tests) | DONE |
 | Reports, SOS/action flows, insights, civic ops, demo kit | DONE |
 | Playwright E2E suites + CI | DONE |
+| Ablation + synthetic calibration experiments (recorded runs, artifacts) | DONE — research/artifacts |
 | ML training gate (≥1,000 VERIFIED observations, ≥90 days) | IN PROGRESS — gate closed, no model trained |
-| Real civic/sensor data integration | PENDING / PLANNED |
+| Real civic/sensor data integration | IN PROGRESS — validated harness + first real feed (OSM Delhi: 3,535 REPORTED observations in PostGIS); verified/incident feeds still needed |
 | Multi-city validation (India-wide OSRM graph) | PENDING / PLANNED |
-| Production deployment hardening (CORS, auth, load tests, monitoring) | PENDING / PLANNED |
+| Production deployment hardening | DONE (CORS, auth layer, observability, rate limits) — load testing + monitoring still PENDING |
 
 ## Research Documentation
 
@@ -729,6 +812,7 @@ checks** and all theme checks passing.
 | [`docs/privacy-review.md`](docs/privacy-review.md) | Privacy checklist with evidence |
 | [`docs/demo.md`](docs/demo.md) | One-command demo runbook |
 | [`docs/sih-demo.md`](docs/sih-demo.md) | Timed judge demo script |
+| [`docs/current-status.md`](docs/current-status.md) | Honest per-feature status, data retention, production blockers |
 
 ## Team / Contributors
 

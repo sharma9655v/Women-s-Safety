@@ -50,11 +50,15 @@ function readStoredTheme(): Theme {
  * between hydration and the first effect.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(readStoredTheme);
-  const [resolved, setResolved] = useState<ResolvedTheme>(() => {
-    const stored = readStoredTheme();
-    return stored === "system" ? systemResolved() : stored;
-  });
+  // Keep the first render deterministic for SSR/hydration. The root layout
+  // script applies the persisted visual token before paint; the stored choice
+  // is then promoted into React state after hydration.
+  const [theme, setThemeState] = useState<Theme>("system");
+  const [resolved, setResolved] = useState<ResolvedTheme>("light");
+
+  useEffect(() => {
+    setThemeState(readStoredTheme());
+  }, []);
 
   useEffect(() => {
     const apply = () => {

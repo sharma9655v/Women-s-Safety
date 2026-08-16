@@ -19,15 +19,16 @@ const MapCanvas = dynamic(() => import("./MapCanvas").then((m) => m.MapCanvas), 
 
 const DEFAULT_FILTERS: MapFilters = {
   incidents: true,
+  alerts: true,
   lighting: true,
   facilities: true,
   heatmap: true,
-  crowd: false,
 };
 
 export interface MapViewProps {
   routes: RouteCandidate[];
   incidents: Incident[];
+  alerts?: Incident[];
   lighting: (LightingObservation & { lat: number; lon: number })[];
   facilities: Facility[];
   heatZones?: { name: string; lat: number; lon: number; level: number }[];
@@ -42,6 +43,7 @@ export interface MapViewProps {
 export function MapView({
   routes,
   incidents,
+  alerts = [],
   lighting,
   facilities,
   heatZones = [],
@@ -63,6 +65,7 @@ export function MapView({
         mode={mode}
         routes={routes}
         incidents={incidents}
+        alerts={alerts}
         lighting={lighting}
         facilities={facilities}
         heatZones={heatZones}
@@ -75,6 +78,29 @@ export function MapView({
 
       {/* Depth vignette */}
       <div className="map-vignette" aria-hidden />
+
+      {/* Per-segment risk legend — shown with the 3D perspective view */}
+      {mode === "3d" ? (
+        <div className="absolute bottom-3 left-3 z-[500] rounded-xl border border-border bg-surface/90 px-3 py-2 shadow-lg backdrop-blur-md">
+          <p className="mb-1 text-[10px] font-semibold tracking-wide text-text-muted uppercase">
+            Per-segment risk estimate
+          </p>
+          <div className="flex items-center gap-2.5 text-[11px] text-text-secondary">
+            <span className="flex items-center gap-1">
+              <span className="risk-legend-swatch risk-legend-low" aria-hidden /> Lower
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="risk-legend-swatch risk-legend-mid" aria-hidden /> Moderate
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="risk-legend-swatch risk-legend-high" aria-hidden /> Higher
+            </span>
+          </div>
+          <p className="mt-1 text-[10px] text-text-muted">
+            From available evidence — not a guarantee
+          </p>
+        </div>
+      ) : null}
 
       {/* Filters */}
       <div className="absolute top-3 left-3 z-[500]">

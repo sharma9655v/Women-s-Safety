@@ -8,7 +8,7 @@ export interface CardProps extends HTMLAttributes<HTMLDivElement> {
 export function Card({ children, interactive = false, className = "", ...rest }: CardProps) {
   return (
     <div
-      className={`glass rounded-2xl p-4 ${
+      className={`glass rounded-2xl p-4 sm:p-5 ${
         interactive ? "card-hover cursor-pointer hover:bg-surface-hover" : ""
       } ${className}`}
       {...rest}

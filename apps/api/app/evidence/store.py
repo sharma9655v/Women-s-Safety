@@ -10,6 +10,10 @@ from app.evidence.states import VerificationState
 
 USER_REPORT_RELIABILITY = 0.6
 
+# Seeded demo evidence (see seed_demo.py). It is illustrative, never real:
+# it must never count toward the ML training gate or verification summaries.
+DEMO_SEED_SOURCE = "demo_seed"
+
 
 class VerificationSummary(TypedDict):
     verified_count: int
@@ -98,7 +102,11 @@ class MemoryEvidenceStore(EvidenceStore):
         return grouped
 
     def verification_summary(self) -> VerificationSummary:
-        verified = [obs for obs in self._observations if obs.state == VerificationState.VERIFIED]
+        verified = [
+            obs
+            for obs in self._observations
+            if obs.state == VerificationState.VERIFIED and obs.source_type != DEMO_SEED_SOURCE
+        ]
         dates = [obs.observed_at for obs in verified]
         if not dates:
             return {"verified_count": 0, "span_days": None}
@@ -173,15 +181,21 @@ class PostgresEvidenceStore(EvidenceStore):
         return grouped
 
     def verification_summary(self) -> VerificationSummary:
+        """Count of VERIFIED observations and the span of their dates.
+
+        Demo-seeded evidence (source_type='demo_seed') is excluded: the ML
+        gate must never open on illustrative data.
+        """
         stmt = text(
             "SELECT MIN(observed_at) AS min_ts, MAX(observed_at) AS max_ts, "
-            "COUNT(*) AS cnt FROM safety_observations WHERE verification_state = 'VERIFIED'"
+            "COUNT(*) AS cnt FROM safety_observations "
+            "WHERE verification_state = 'VERIFIED' AND source_type <> :demo_source"
         )
         report_stmt = text(
             "SELECT COUNT(*) AS cnt FROM safety_reports WHERE verification_state = 'VERIFIED'"
         )
         with self._engine.connect() as conn:
-            row = conn.execute(stmt).one()
+            row = conn.execute(stmt, {"demo_source": DEMO_SEED_SOURCE}).one()
             verified = int(row.cnt)
             min_ts, max_ts = row.min_ts, row.max_ts
             verified += int(conn.execute(report_stmt).scalar_one())

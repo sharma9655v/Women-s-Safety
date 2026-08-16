@@ -8,8 +8,7 @@ from typing import TypedDict
 
 from sqlalchemy import Engine, text
 
-from app.evidence.engine import freshness
-from app.evidence.freshness import utc_now
+from app.evidence.freshness import freshness, utc_now
 from app.evidence.states import VerificationState
 from app.risk.model import NIGHT_HOURS, NIGHT_MULTIPLIER
 
@@ -66,8 +65,9 @@ class AreaSafety(TypedDict):
     score: dict[str, object]
     recent_incidents: int
     lighting_summary: str
-    crowd: str
-    by_time_of_day: list[dict[str, float | str]]
+    # Honest by design: no crowd data source exists, so this is always None.
+    crowd: str | None
+    by_time_of_day: list[dict[str, float]]
 
 
 @dataclass(frozen=True)
@@ -113,6 +113,9 @@ class OverlayStore:
         raise NotImplementedError
 
     def alerts(self, limit: int = 20) -> list[IncidentMarker]:
+        raise NotImplementedError
+
+    def all_areas(self) -> list[AreaSafety]:
         raise NotImplementedError
 
 
@@ -393,7 +396,7 @@ def _aggregate_area_safety(name: str, points: Sequence[OverlayPoint]) -> AreaSaf
         p for p in incident_points if freshness(p.observed_at, now, p.observation_type) >= 0.05
     ]
 
-    by_time_of_day: list[dict[str, float | str]] = []
+    by_time_of_day: list[dict[str, float]] = []
     fresh_points = [p for p in points if freshness(p.observed_at, now, p.observation_type) >= 0.05]
     base_risk = min(1.0, 0.08 + 0.06 * len(fresh_points) / max(1, 10))
     lighting_out_share = (
@@ -413,7 +416,6 @@ def _aggregate_area_safety(name: str, points: Sequence[OverlayPoint]) -> AreaSaf
     day_score = next((p["score"] for p in by_time_of_day if p["hour"] == 15), 70)
     night_score = next((p["score"] for p in by_time_of_day if p["hour"] == 22), 60)
     recent = min(99, len(fresh_incidents))
-    crowd = "high" if recent > 5 else "medium" if recent > 2 else "low"
     lighting_out = sum(1 for p in lighting_points if p.working is False)
     lighting_share = (
         min(1.0, (len(lighting_points) - lighting_out) / max(1, len(lighting_points)))
@@ -446,11 +448,12 @@ def _aggregate_area_safety(name: str, points: Sequence[OverlayPoint]) -> AreaSaf
                     "detail": "Updated recently",
                 },
                 "conflicts": [],
-                "coverage": 0.6,
+                "coverage": None,
             },
         },
         "recent_incidents": recent,
         "lighting_summary": lighting_summary,
-        "crowd": crowd,
+        # No crowd data source exists — never invent a crowd level.
+        "crowd": None,
         "by_time_of_day": by_time_of_day,
     }

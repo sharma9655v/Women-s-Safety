@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from sqlalchemy import create_engine
+from app.db import make_engine
 
 from app.config import settings
 from app.evidence.registry import get_evidence_store
@@ -16,7 +16,7 @@ def get_reports_store() -> ReportStore:
     evidence = get_evidence_store()
     if isinstance(evidence, PostgresEvidenceStore) and settings.database_url:
         try:
-            engine = create_engine(settings.database_url)
+            engine = make_engine()
             with engine.connect():
                 pass
             return PostgresReportStore(engine, evidence)

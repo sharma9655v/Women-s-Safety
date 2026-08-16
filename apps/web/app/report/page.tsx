@@ -1,12 +1,17 @@
 "use client";
 
-import { FileWarning, Lock, MapPin, Send } from "lucide-react";
+import { FileWarning, ImagePlus, Lock, MapPin, Send, X } from "lucide-react";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Button } from "@/app/components/ui/Button";
 import { Card, CardHeader } from "@/app/components/ui/Card";
 import { Select } from "@/app/components/ui/Input";
 import { submitReport } from "@/lib/api";
 import type { ReportResult, ReportSubmission } from "@/lib/types";
+
+// The API caps the base64 evidence_image string at 5,000,000 chars, so a
+// 3.5 MB raw file stays comfortably under the limit after data-URL inflation.
+const MAX_IMAGE_BYTES = 3_500_000;
 
 const CATEGORIES = [
   { id: "streetlight_not_working", label: "Streetlight not working" },
@@ -37,12 +42,32 @@ export default function ReportPage() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ReportResult | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [segmentIds] = useState<number[]>(() =>
-    typeof sessionStorage === "undefined" ? [] : lastRouteSegmentIds(),
-  );
-  useEffect(() => setMounted(true), []);
+  const [imageData, setImageData] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [segmentIds, setSegmentIds] = useState<number[]>([]);
+  useEffect(() => {
+    setSegmentIds(lastRouteSegmentIds());
+    setMounted(true);
+  }, []);
 
   const canSubmit = segmentIds.length > 0 && details.trim().length >= 10;
+
+  const handleImage = (file: File | undefined) => {
+    setImageError(null);
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setImageError("Please choose an image file (PNG, JPEG, WEBP, ...).");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setImageError("Image is too large — the maximum size is 3.5 MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setImageData(typeof reader.result === "string" ? reader.result : null);
+    reader.onerror = () => setImageError("Could not read the image file.");
+    reader.readAsDataURL(file);
+  };
 
   const submit = async () => {
     if (!canSubmit || submitting) return;
@@ -53,7 +78,7 @@ export default function ReportPage() {
         segment_id: segmentIds[0],
         category,
         description: details.trim(),
-        evidence_image: null,
+        evidence_image: imageData,
       };
       const res = await submitReport(payload);
       setResult(res);
@@ -112,7 +137,7 @@ export default function ReportPage() {
           </Card>
         ) : null}
 
-        <Card>
+        <Card className="report-form-card">
           <CardHeader
             title="Incident details"
             subtitle="Be specific about what you saw — never include names or private details."
@@ -158,6 +183,61 @@ export default function ReportPage() {
               <p className="mt-1 text-right text-[11px] text-text-muted">{details.length}/500</p>
             </div>
 
+            <div>
+              <input
+                id="evidence-image"
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  handleImage(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
+              {imageData ? (
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2">
+                  <Image
+                    src={imageData}
+                    alt="Selected evidence preview"
+                    width={64}
+                    height={64}
+                    unoptimized
+                    className="size-16 shrink-0 rounded-lg border border-border object-cover"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium text-foreground">Photo attached</p>
+                    <p className="text-[11px] leading-relaxed text-text-muted">
+                      Metadata (EXIF) is stripped and the image is encrypted on the server.
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    aria-label="Remove attached photo"
+                    onClick={() => {
+                      setImageData(null);
+                      setImageError(null);
+                    }}
+                  >
+                    <X className="size-3.5" aria-hidden /> Remove
+                  </Button>
+                </div>
+              ) : (
+                <label
+                  htmlFor="evidence-image"
+                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-dashed border-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-primary/40 hover:text-foreground"
+                >
+                  <ImagePlus className="size-4" aria-hidden />
+                  Add photo evidence (optional, max 3.5 MB)
+                </label>
+              )}
+              {imageError ? (
+                <p role="alert" className="mt-1.5 text-[11px] text-danger">
+                  {imageError}
+                </p>
+              ) : null}
+            </div>
+
             {error ? (
               <p
                 role="alert"
@@ -167,7 +247,7 @@ export default function ReportPage() {
               </p>
             ) : null}
 
-            <div className="flex items-center justify-between gap-3">
+            <div className="report-form-footer flex items-center justify-between gap-3">
               <p className="flex items-center gap-1.5 text-[11px] text-text-muted">
                 <Lock className="size-3.5" aria-hidden /> Reported anonymously · never shared
                 publicly

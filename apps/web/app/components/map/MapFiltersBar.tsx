@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Building2, Flame, Lightbulb, Users } from "lucide-react";
+import { AlertTriangle, Bell, Building2, Flame, Lightbulb } from "lucide-react";
 import type { MapFilters } from "./MapCanvas";
 
 const FILTERS: {
@@ -9,10 +9,10 @@ const FILTERS: {
   icon: typeof AlertTriangle;
 }[] = [
   { key: "incidents", label: "Incidents", icon: AlertTriangle },
+  { key: "alerts", label: "Alerts", icon: Bell },
   { key: "lighting", label: "Lighting", icon: Lightbulb },
   { key: "facilities", label: "Facilities", icon: Building2 },
   { key: "heatmap", label: "Heatmap", icon: Flame },
-  { key: "crowd", label: "Crowd", icon: Users },
 ];
 
 export function MapFiltersBar({
@@ -32,8 +32,9 @@ export function MapFiltersBar({
             key={f.key}
             type="button"
             onClick={() => onChange({ ...filters, [f.key]: !active })}
+            title={f.label}
             aria-pressed={active}
-            className={`flex cursor-pointer items-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-medium backdrop-blur-md transition-all duration-200 select-none ${
+            className={`map-filter-button flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded-lg border px-2 py-1.5 text-[11px] font-medium backdrop-blur-md transition-all duration-200 select-none ${
               active
                 ? "border-primary/30 bg-primary/12 text-primary shadow-sm"
                 : "border-border bg-surface/80 text-text-muted hover:bg-surface-hover hover:text-text-secondary"

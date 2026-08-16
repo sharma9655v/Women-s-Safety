@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from app.db import make_engine
 
 from app.config import settings
 from app.segments.store import MemorySegmentStore, PostgisSegmentStore, SegmentStore
@@ -18,7 +18,7 @@ def get_segments_store() -> SegmentStore:
     """
     if settings.database_url and settings.database_url != "":
         try:
-            engine = create_engine(settings.database_url)
+            engine = make_engine()
             with engine.connect():
                 pass
         except Exception:

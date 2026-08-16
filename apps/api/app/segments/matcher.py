@@ -1,9 +1,20 @@
 from __future__ import annotations
 
+import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from shapely.geometry import LineString
+from shapely.geometry import LineString, Point
+
+# Degrees-to-metres approximation used only for off-network warnings.
+# One degree of latitude ~ 111.3 km; longitude shrinks by cos(lat). Delhi
+# sits near lat 28.6, so cos ~ 0.878. This is an approximation for messaging,
+# never part of scoring.
+_M_PER_DEG = 111_320.0
+
+
+def _deg_to_m(distance_deg: float, lat: float) -> float:
+    return distance_deg * _M_PER_DEG * math.cos(math.radians(lat))
 
 
 @dataclass(frozen=True)
@@ -55,3 +66,27 @@ def map_match(
 
     matched.sort(key=lambda item: item[0])
     return [seg_id for _, seg_id in matched]
+
+
+def nearest_road_distance_m(
+    lon: float,
+    lat: float,
+    segments: Sequence[RoadSegment],
+) -> float | None:
+    """Distance from a point to the nearest mapped road, in metres.
+
+    Returns None when no segments are provided. The degree distance is
+    converted with a cos(lat) approximation (see ``_deg_to_m``) — precise
+    enough to tell users "origin may be off the road network", never used in
+    scoring.
+    """
+    if not segments:
+        return None
+    point = Point(lon, lat)
+    nearest = min(
+        (LineString(seg.geometry).distance(point) for seg in segments),
+        default=None,
+    )
+    if nearest is None:
+        return None
+    return _deg_to_m(nearest, lat)

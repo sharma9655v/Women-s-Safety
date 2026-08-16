@@ -46,7 +46,7 @@ function log(ok, name, detail = "") {
   await page.getByLabel("Starting point", { exact: true }).fill("Connaught Place");
   await page.getByLabel("Destination", { exact: true }).fill("India Gate");
   await page.getByRole("radiogroup", { name: /Transport mode/ }).getByText("Transit").click();
-  await page.getByRole("button", { name: /Find Safe Route/ }).click();
+  await page.getByRole("button", { name: /Plan Route/ }).click();
 
   await page
     .waitForSelector('section[aria-label="Route options"] button[aria-pressed="true"]', {

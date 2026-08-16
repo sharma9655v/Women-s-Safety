@@ -31,6 +31,9 @@ SPARSE_WARNING_FRACTION = 0.5
 SPARSE_WARNING = "Limited safety data along parts of this route"
 CONFLICT_WARNING = "Conflicting recent evidence on parts of this route"
 
+# Segments at or above this risk probability count as a high-risk stretch.
+HIGH_RISK_THRESHOLD = 0.5
+
 _EARTH_RADIUS_M = 6371000.0
 
 
@@ -75,6 +78,8 @@ class ScoredRoute:
     confidence: float
     uncertainty: float
     sparse_fraction: float
+    high_risk_fraction: float
+    risk_exposure_m: float
     conflicts_present: bool
     reasons: tuple[str, ...]
 
@@ -99,6 +104,19 @@ def score_candidate(
     sparse_fraction = sum(
         w for w, r in zip(weights, segment_risks, strict=True) if r.confidence <= 0.3
     )
+    high_risk_fraction = sum(
+        w
+        for w, r in zip(weights, segment_risks, strict=True)
+        if r.risk_probability >= HIGH_RISK_THRESHOLD
+    )
+    # Length-weighted risk exposure: effective "risky metres" on the route
+    # (sum of length x risk over segments). Zero when no segment lengths are
+    # known — honest rather than invented. Non-strict zip: lengths may be
+    # shorter than risks when segment geometries are missing.
+    risk_exposure_m = sum(
+        length * r.risk_probability
+        for length, r in zip(segment_lengths, segment_risks, strict=False)
+    )
 
     reasons_counter: Counter[str] = Counter()
     for r in segment_risks:
@@ -115,6 +133,8 @@ def score_candidate(
         confidence=max(0.0, min(0.95, 1.0 - uncertainty)),
         uncertainty=uncertainty,
         sparse_fraction=sparse_fraction,
+        high_risk_fraction=max(0.0, min(1.0, high_risk_fraction)),
+        risk_exposure_m=risk_exposure_m,
         conflicts_present=any(
             "Conflicting recent evidence" in reason for r in segment_risks for reason in r.reasons
         ),

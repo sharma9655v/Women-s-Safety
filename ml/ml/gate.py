@@ -4,6 +4,10 @@ The gate mirrors implementation-plan.md Phase 6: training may only start once
 a labeled dataset threshold exists (>= MIN_VERIFIED_OBSERVATIONS verified
 observations spanning >= MIN_SPAN_DAYS). The label of record is the evidence
 engine's VERIFIED state (verification_state == 'VERIFIED'), not a guess.
+
+Demo-seeded observations (source_type = 'demo_seed') are illustrative, not
+real: they are always excluded from the verified count, so demo data can
+never open the gate.
 """
 
 from __future__ import annotations
@@ -18,6 +22,11 @@ import psycopg
 MIN_VERIFIED_OBSERVATIONS = 1_000
 MIN_SPAN_DAYS = 90
 DATABASE_URL = "postgresql+psycopg://postgres:postgres@localhost:5432/mapforwomen"
+
+# Seeded demo evidence (apps/api/app/seed_demo.py). Must match
+# apps/api/app/evidence/store.py DEMO_SEED_SOURCE and never count toward the
+# gate — illustrative data is not a training label.
+DEMO_SEED_SOURCE = "demo_seed"
 
 
 @dataclass(frozen=True)
@@ -55,6 +64,7 @@ def check_gate(database_url: str = DATABASE_URL) -> GateReport:
                         0.0
                     ) AS span_days
                 FROM safety_observations
+                WHERE source_type <> 'demo_seed'
                 """
             ).fetchone()
         verified, total, span_days = int(row[0]), int(row[1]), float(row[2])

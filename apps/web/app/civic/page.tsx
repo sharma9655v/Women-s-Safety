@@ -2,6 +2,7 @@
 
 import { Building2, ExternalLink, Flame, Lightbulb, MapPin, ShieldAlert } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { LifecycleDemoCard } from "@/app/components/civic/LifecycleDemoCard";
 import { Card, CardHeader } from "@/app/components/ui/Card";
 import { Pill } from "@/app/components/ui/Pill";
 import { SkeletonCard } from "@/app/components/ui/Skeleton";
@@ -11,7 +12,7 @@ import type { AreaSafety, Incident, LightingObservation } from "@/lib/types";
 type LightingWithCoords = LightingObservation & { lat: number; lon: number };
 
 function mapsUrl(lat: number, lon: number): string {
-  return `https://www.google.com/maps?q=${lat.toFixed(5)},${lon.toFixed(5)}`;
+  return `https://www.openstreetmap.org/?mlat=${lat.toFixed(5)}&mlon=${lon.toFixed(5)}#map=19/${lat.toFixed(5)}/${lon.toFixed(5)}`;
 }
 
 export default function CivicPage() {
@@ -224,6 +225,8 @@ export default function CivicPage() {
                 </Card>
               </div>
             </div>
+
+            <LifecycleDemoCard />
           </>
         )}
       </div>

@@ -71,3 +71,26 @@ def test_models_current_gate_open_when_thresholds_met() -> None:
     assert body["ml_gate"]["verified_observations"] == 1000
     assert body["ml_gate"]["span_days"] >= 90
     assert body["ml_gate"]["open"] is True
+
+
+def test_models_current_demo_seed_verified_never_counts() -> None:
+    client, evidence = _client()
+    t0 = datetime(2026, 1, 1, 12, 0, tzinfo=UTC)
+    evidence._observations.extend(  # type: ignore[attr-defined]
+        [
+            Observation(
+                segment_id=456736,
+                source_type="demo_seed",
+                observation_type="harassment",
+                observed_at=t0 + timedelta(days=i),
+                source_reliability=0.55,
+                value={"incident": True},
+                state=VerificationState.VERIFIED,
+                id=i + 1,
+            )
+            for i in range(50)
+        ]
+    )
+    body = client.get("/api/models/current").json()
+    assert body["ml_gate"]["verified_observations"] == 0
+    assert body["ml_gate"]["open"] is False

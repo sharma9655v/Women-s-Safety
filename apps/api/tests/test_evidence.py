@@ -212,6 +212,34 @@ def test_aggregate_incidents_never_conflict() -> None:
     assert evidence.conflicts == []
 
 
+def test_aggregate_surfaces_source_diversity() -> None:
+    items = [
+        obs(1, "harassment", NOW, source="user_report"),
+        obs(1, "harassment", NOW, source="city_data"),
+    ]
+    summary = aggregate(1, items, NOW).by_type["harassment"]
+    assert summary.distinct_source_types == 2
+    assert summary.corroborated is True
+
+
+def test_aggregate_single_source_not_corroborated_by_two_items() -> None:
+    items = [
+        obs(1, "harassment", NOW, source="user_report"),
+        obs(1, "harassment", NOW, source="user_report"),
+    ]
+    summary = aggregate(1, items, NOW).by_type["harassment"]
+    assert summary.distinct_source_types == 1
+    assert summary.corroborated is False
+
+
+def test_aggregate_three_items_corroborate_even_single_source() -> None:
+    # Independence proxy matches compute_states: >= 3 items corroborate.
+    items = [obs(1, "harassment", NOW, source="user_report") for _ in range(3)]
+    summary = aggregate(1, items, NOW).by_type["harassment"]
+    assert summary.corroborated is True
+    assert summary.distinct_source_types == 1
+
+
 def test_evidence_hash_is_stable_and_content_bound() -> None:
     h1 = evidence_hash(1, "user_report", "harassment", {"severity": 2}, NOW)
     h2 = evidence_hash(1, "user_report", "harassment", {"severity": 2}, NOW)
