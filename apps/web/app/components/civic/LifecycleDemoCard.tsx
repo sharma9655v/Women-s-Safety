@@ -15,9 +15,8 @@ import { Button } from "@/app/components/ui/Button";
 import { Card } from "@/app/components/ui/Card";
 import { Select } from "@/app/components/ui/Input";
 import { adminSetVerification, fetchSegmentEvidenceStats, submitReport } from "@/lib/api";
+import { getAdminKey } from "@/lib/admin-key";
 import type { ReportResult, SegmentEvidence } from "@/lib/types";
-
-const ADMIN_KEY_STORAGE = "safety-admin-key";
 
 interface Step {
   id: number;
@@ -54,7 +53,7 @@ export function LifecycleDemoCard() {
     const ids = typeof sessionStorage === "undefined" ? [] : lastRouteSegmentIds();
     setSegmentIds(ids);
     if (ids.length > 0) setSegmentId(ids[0]);
-    setAdminKey(window.localStorage.getItem(ADMIN_KEY_STORAGE) ?? "");
+    setAdminKey(getAdminKey());
   }, []);
 
   const loadEvidence = useCallback((id: number) => {

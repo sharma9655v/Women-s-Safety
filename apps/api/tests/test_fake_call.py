@@ -77,6 +77,38 @@ def test_get_fake_call_status_scoped_to_owner() -> None:
     assert resp.json()["caller_name"] == "Mom"
 
 
+def test_fake_call_status_endpoint_none_before_any_call() -> None:
+    client = make_client()
+    resp = client.get("/api/fake-call/status", headers=_headers(CLIENT_A))
+    assert resp.status_code == 200
+    assert resp.json() is None
+
+
+def test_fake_call_status_endpoint_returns_latest_call() -> None:
+    client = make_client()
+    client.post("/api/fake-call", json={"caller_name": "Mom"}, headers=_headers(CLIENT_A))
+    latest = client.post(
+        "/api/fake-call",
+        json={
+            "caller_name": "Dad",
+            "scheduled_at": "2030-08-16T12:00:00+00:00",
+        },
+        headers=_headers(CLIENT_A),
+    ).json()
+    resp = client.get("/api/fake-call/status", headers=_headers(CLIENT_A))
+    assert resp.status_code == 200
+    assert resp.json()["id"] == latest["id"]
+    assert resp.json()["caller_name"] == "Dad"
+
+
+def test_fake_call_status_scoped_to_owner() -> None:
+    client = make_client()
+    client.post("/api/fake-call", json={"caller_name": "Mom"}, headers=_headers(CLIENT_A))
+    resp = client.get("/api/fake-call/status", headers=_headers("b" * 32))
+    assert resp.status_code == 200
+    assert resp.json() is None
+
+
 def test_foreign_client_cannot_read_call() -> None:
     client = make_client()
     created = client.post(

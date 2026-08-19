@@ -33,6 +33,8 @@ import csv
 import hashlib
 import io
 import json
+import logging
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -43,8 +45,16 @@ from sqlalchemy import text
 from app.db import make_engine
 from app.evidence.engine import evidence_hash
 from app.evidence.states import OBSERVATION_TYPES, VerificationState
+from app.metrics import record_ingestion
+
+logger = logging.getLogger("app.ingest")
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+
+# DB write retry policy: transient PostGIS failures are retried with a short
+# backoff before the run reports failure.
+WRITE_RETRIES = 3
+WRITE_RETRY_BACKOFF_S = 1.0
 
 REQUIRED_COLUMNS = {
     "segment_id": "int",
@@ -342,37 +352,67 @@ def run_ingest(
             with engine.begin() as conn:
                 conn.execute(text("SELECT 1"))
         except Exception as exc:
+            record_ingestion("db_unreachable", 0)
             result["error"] = f"PostGIS unreachable: {exc}"
             return result
-        with engine.begin() as conn:
-            inserted = 0
-            for row in report.valid:
-                conn.execute(
-                    text(
-                        "INSERT INTO safety_observations "
-                        "(segment_id, source_type, observation_type, value_json, observed_at, "
-                        "source_reliability, confidence, verification_state, evidence_hash) "
-                        "VALUES (:segment_id, :source_type, :observation_type, :value_json, "
-                        ":observed_at, :source_reliability, :confidence, :verification_state, "
-                        ":evidence_hash) ON CONFLICT (evidence_hash) DO NOTHING"
-                    ),
-                    {
-                        "segment_id": cast(int, row["segment_id"]),
-                        "source_type": source_type,
-                        "observation_type": row["observation_type"],
-                        "value_json": json.dumps(row["value_json"], sort_keys=True),
-                        "observed_at": cast(datetime, row["observed_at"]),
-                        "source_reliability": cast(float, row["source_reliability"]),
-                        "confidence": 0.5,
-                        "verification_state": row["verification_state"],
-                        "evidence_hash": row["evidence_hash"],
-                    },
-                )
-                inserted += 1
+        inserted = _insert_with_retry(engine, report.valid, source_type)
+        if inserted is None:
+            record_ingestion("write_failed", 0)
+            result["error"] = "PostGIS write failed after retries"
+            return result
+        record_ingestion("ok", inserted)
         result["written_to_db"] = True
         result["inserted"] = inserted
 
     return result
+
+
+def _insert_with_retry(
+    engine: object, rows: list[dict[str, object]], source_type: str
+) -> int | None:
+    """Insert validated rows idempotently (ON CONFLICT DO NOTHING) with a
+    bounded retry loop for transient database failures. Returns the number
+    of insert attempts, or None when all retries failed."""
+    from sqlalchemy import Engine
+
+    if not isinstance(engine, Engine):
+        raise TypeError("expected a SQLAlchemy Engine")
+    last_error: Exception | None = None
+    for attempt in range(1, WRITE_RETRIES + 1):
+        try:
+            inserted = 0
+            with engine.begin() as conn:
+                for row in rows:
+                    conn.execute(
+                        text(
+                            "INSERT INTO safety_observations "
+                            "(segment_id, source_type, observation_type, value_json, observed_at, "
+                            "source_reliability, confidence, verification_state, evidence_hash) "
+                            "VALUES (:segment_id, :source_type, :observation_type, :value_json, "
+                            ":observed_at, :source_reliability, :confidence, :verification_state, "
+                            ":evidence_hash) ON CONFLICT (evidence_hash) DO NOTHING"
+                        ),
+                        {
+                            "segment_id": cast(int, row["segment_id"]),
+                            "source_type": source_type,
+                            "observation_type": row["observation_type"],
+                            "value_json": json.dumps(row["value_json"], sort_keys=True),
+                            "observed_at": cast(datetime, row["observed_at"]),
+                            "source_reliability": cast(float, row["source_reliability"]),
+                            "confidence": 0.5,
+                            "verification_state": row["verification_state"],
+                            "evidence_hash": row["evidence_hash"],
+                        },
+                    )
+                    inserted += 1
+            return inserted
+        except Exception as exc:  # transient DB failure — retry with backoff
+            last_error = exc
+            logger.warning("ingestion write attempt %d/%d failed: %s", attempt, WRITE_RETRIES, exc)
+            if attempt < WRITE_RETRIES:
+                time.sleep(WRITE_RETRY_BACKOFF_S * attempt)
+    logger.error("ingestion write failed after %d retries: %s", WRITE_RETRIES, last_error)
+    return None
 
 
 def main() -> int:

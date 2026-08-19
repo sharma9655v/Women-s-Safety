@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from app.auth import require_client_id
 from app.identity import client_hash
@@ -81,20 +81,6 @@ def create_alert(
         {"alert_id": alert.id, "category": alert.category, "severity": alert.severity},
     )
     return _alert_response(alert)
-
-
-@router.get(
-    "/alerts",
-    response_model=AlertListResponse,
-)
-def list_alerts(
-    request: Request,
-    store: Annotated[AlertStore, Depends(get_alert_store)],
-    cid: Annotated[str, Depends(require_client_id)],
-    limit: int = Query(default=50, ge=1, le=200),
-) -> AlertListResponse:
-    alerts = store.list_alerts(cid, limit)
-    return AlertListResponse(alerts=[_alert_response(a) for a in alerts])
 
 
 @router.get(

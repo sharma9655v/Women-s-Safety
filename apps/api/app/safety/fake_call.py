@@ -55,6 +55,10 @@ class FakeCallStore:
     def get_fake_call(self, client_id_value: str, call_id: str) -> FakeCallSession | None:
         raise NotImplementedError
 
+    def latest_fake_call(self, client_id_value: str) -> FakeCallSession | None:
+        """Most recent fake call for the client, or None if none exists yet."""
+        raise NotImplementedError
+
 
 class MemoryFakeCallStore(FakeCallStore):
     def __init__(self) -> None:
@@ -86,6 +90,12 @@ class MemoryFakeCallStore(FakeCallStore):
         if call is None or call.client_id != client_id_value:
             return None
         return call
+
+    def latest_fake_call(self, client_id_value: str) -> FakeCallSession | None:
+        calls = [c for c in self._calls.values() if c.client_id == client_id_value]
+        if not calls:
+            return None
+        return max(calls, key=lambda c: c.scheduled_at)
 
 
 def _make_engine() -> Engine:
@@ -141,6 +151,20 @@ class PostgresFakeCallStore(FakeCallStore):
                     "client_id = :cid"
                 ),
                 {"id": call_id, "cid": client_id_value},
+            ).one_or_none()
+        if row is None:
+            return None
+        return _to_fake_call(row)
+
+    def latest_fake_call(self, client_id_value: str) -> FakeCallSession | None:
+        with self._engine.connect() as conn:
+            row = conn.execute(
+                text(
+                    "SELECT id, client_id, caller_name, caller_number, scheduled_at, "
+                    "triggered_at, status FROM fake_call_sessions WHERE client_id = :cid "
+                    "ORDER BY scheduled_at DESC LIMIT 1"
+                ),
+                {"cid": client_id_value},
             ).one_or_none()
         if row is None:
             return None

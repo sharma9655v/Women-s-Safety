@@ -19,6 +19,10 @@ import type {
   CommunityPostInput,
   ContactInput,
   ContactUpdate,
+  CVHealth,
+  CVListResponse,
+  CVPredictRequest,
+  CVPredictResponse,
   DiscreetModeSettings,
   EmergencySession,
   Facility,
@@ -783,6 +787,15 @@ export async function fetchFakeCall(callId: string): Promise<FakeCallSession> {
   return getJson<FakeCallSession>(`/api/fake-call/${callId}`, true);
 }
 
+/** Latest fake call for this device, or null when none exists yet. */
+export async function fetchFakeCallStatus(): Promise<FakeCallSession | null> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 200));
+    return null;
+  }
+  return getJson<FakeCallSession | null>("/api/fake-call/status", true);
+}
+
 /* ---------------- Voice guidance (Feature Group U) ---------------- */
 
 export async function startVoiceGuidance(
@@ -922,9 +935,51 @@ export async function fetchModelsCurrent(): Promise<ModelsCurrent> {
         min_verified_observations: 1000,
         min_span_days: 90,
       },
+      cv_models: [],
     };
   }
   return getJson<ModelsCurrent>("/api/models/current");
+}
+
+/* ---------------- Computer vision (CV) ---------------- */
+
+export async function fetchCvHealth(): Promise<CVHealth> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 150));
+    return {
+      backend: "mock",
+      loaded: false,
+      models: [],
+      is_real_inference: false,
+      note: "No CV backend configured in this development build.",
+    };
+  }
+  return getJson<CVHealth>("/api/cv/health");
+}
+
+export async function fetchCvModels(): Promise<CVListResponse> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 150));
+    return { models: [], backend: "mock", loaded: false, is_real_inference: false };
+  }
+  return getJson<CVListResponse>("/api/cv/models");
+}
+
+export async function predictCv(input: CVPredictRequest): Promise<CVPredictResponse> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 400));
+    return {
+      kind: input.kind,
+      scores: [0.5],
+      detections: [],
+      confidence: 0.5,
+      model_name: input.model_name ?? "mock-classifier",
+      model_version: "0.0.0",
+      is_real_inference: false,
+      note: "Development mock prediction — not a real model output.",
+    };
+  }
+  return postJson<CVPredictResponse>("/api/cv/predict", input, true);
 }
 
 /* ---------------- Device session (auth) ---------------- */

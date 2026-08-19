@@ -187,6 +187,70 @@ class ModelsCurrentResponse(BaseModel):
     evidence_model: str
     dataset_versions: list[str]
     ml_gate: MlGate
+    cv_models: list[CVModelInfo] = Field(
+        default_factory=list,
+        description="Registered computer-vision checkpoints with status",
+    )
+
+
+class CVModelInfo(BaseModel):
+    """One registered CV checkpoint (models/registry.json).
+
+    status is one of AVAILABLE / EXPERIMENTAL / VALIDATION_REQUIRED /
+    PRODUCTION. Unvalidated checkpoints are never PRODUCTION.
+    """
+
+    name: str
+    version: str
+    kind: str
+    framework: str
+    checkpoint_path: str
+    input_schema: dict[str, object]
+    output_schema: dict[str, object]
+    status: str
+    metrics: dict[str, float] = Field(default_factory=dict)
+    dataset_version: str | None = None
+    integration: str = "not_integrated"
+
+
+class CVHealthResponse(BaseModel):
+    """CV backend health. is_real_inference must be true ONLY when a real
+    backend is deployed; the mock reports it as false."""
+
+    backend: str
+    loaded: bool
+    models: list[CVModelInfo]
+    is_real_inference: bool
+    note: str
+
+
+class CVPredictRequest(BaseModel):
+    """Image inference request. image is base64-encoded JPEG/PNG/WebP."""
+
+    image_base64: str = Field(min_length=16, max_length=15_000_000)
+    kind: Literal["cv_classifier", "cv_detector"] = "cv_classifier"
+    model_name: str | None = Field(default=None, max_length=64)
+
+
+class CVPredictResponse(BaseModel):
+    """Normalized inference output. is_real_inference distinguishes the
+    development mock (False) from a deployed real backend (True)."""
+
+    kind: str
+    scores: list[float] = Field(default_factory=list)
+    detections: list[dict[str, object]] = Field(default_factory=list)
+    confidence: float | None = None
+    model_name: str
+    model_version: str
+    is_real_inference: bool
+    note: str = ""
+
+
+class CVListResponse(BaseModel):
+    models: list[CVModelInfo]
+    backend: str
+    loaded: bool
+    is_real_inference: bool
 
 
 class AdminReport(BaseModel):
@@ -388,8 +452,8 @@ class GuardianEndResponse(BaseModel):
 
 class JourneyCheckinCreate(BaseModel):
     destination_name: str
-    destination_lat: float = Field(ge=-90, le=90)
-    destination_lon: float = Field(ge=-180, le=180)
+    destination_lat: float | None = Field(default=None, ge=-90, le=90)
+    destination_lon: float | None = Field(default=None, ge=-180, le=180)
     expected_arrival_at: datetime | None = None
     checkin_interval_s: int = Field(default=900, ge=60, le=3600)
     checkin_grace_s: int = Field(default=300, ge=60, le=7200)

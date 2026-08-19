@@ -6,7 +6,7 @@ import { Badge } from "@/app/components/ui/Badge";
 import { Button } from "@/app/components/ui/Button";
 import { Card, CardHeader } from "@/app/components/ui/Card";
 import { Input } from "@/app/components/ui/Input";
-import { fetchFakeCall, startFakeCall } from "@/lib/api";
+import { fetchFakeCall, fetchFakeCallStatus, startFakeCall } from "@/lib/api";
 import type { FakeCallSession } from "@/lib/types";
 
 const POLL_MS = 10000;
@@ -43,7 +43,7 @@ export function FakeCallCard() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchFakeCall("latest")
+    fetchFakeCallStatus()
       .then((s) => {
         if (!cancelled) setSession(s);
       })

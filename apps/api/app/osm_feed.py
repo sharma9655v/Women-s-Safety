@@ -1,8 +1,8 @@
-"""Fetch real OSM data for the Delhi area and emit a validated feed.
+"""Fetch real OSM data for a city (default Delhi) and emit a validated feed.
 
 The only real, licence-clear data source that maps 1:1 onto the routing graph
 today is OpenStreetMap (ODbL). This script queries the public Overpass API for
-routable ways in the Delhi bounding box carrying explicit attribute tags, and
+routable ways in the city bounding box carrying explicit attribute tags, and
 maps them onto the evidence vocabulary:
 
   - highway + lit=no              -> poor_lighting      {"poor": true}
@@ -19,7 +19,8 @@ Honesty rules:
     still requires an explicit --write to touch PostGIS.
 
 Usage:
-    uv run --directory apps/api python -m app.osm_feed                # fetch + dry run
+    uv run --directory apps/api python -m app.osm_feed                # fetch + dry run (Delhi)
+    uv run --directory apps/api python -m app.osm_feed --city mumbai  # any registered city
     uv run --directory apps/api python -m app.osm_feed --write        # fetch + insert
 """
 
@@ -35,9 +36,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+from app.gis.cities import get_city
 from app.ingest_feed import run_ingest
+from app.metrics import record_ingestion
 
-# NCT Delhi approximate bounding box.
+# Default bounding box: NCT Delhi (kept for backward compatibility).
 DELHI_BBOX = (28.35, 76.75, 28.95, 77.40)
 
 OVERPASS_ENDPOINTS = [
@@ -164,16 +167,38 @@ def load_way_segment_map(way_ids: set[int]) -> dict[int, list[int]]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Fetch Delhi OSM data as a validated feed.")
+    parser = argparse.ArgumentParser(description="Fetch city OSM data as a validated feed.")
     parser.add_argument("--write", action="store_true", help="insert into PostGIS after validation")
     parser.add_argument(
         "--out", type=Path, default=None, help="feed CSV path (default: repo data/)"
     )
+    parser.add_argument(
+        "--city",
+        default=None,
+        help="city name (default: delhi); see app.gis.cities for the registry",
+    )
+    parser.add_argument(
+        "--bbox",
+        default=None,
+        help="override bbox as south,west,north,east (e.g. 28.35,76.75,28.95,77.40)",
+    )
     args = parser.parse_args()
 
+    if args.bbox:
+        try:
+            south, west, north, east = (float(part) for part in args.bbox.split(","))
+        except ValueError:
+            parser.error("--bbox must be south,west,north,east")
+    else:
+        city = get_city(args.city) if args.city else get_city("delhi")
+        south, west, north, east = city.bbox
+
     observed_at = datetime.now(UTC).replace(microsecond=0)
-    print(f"Fetching Delhi OSM from Overpass ({observed_at.isoformat()}) ...")
-    elements = fetch_osm(*DELHI_BBOX)
+    print(
+        f"Fetching OSM ({south},{west},{north},{east}) from Overpass "
+        f"({observed_at.isoformat()}) ..."
+    )
+    elements = fetch_osm(south, west, north, east)
     way_ids = {
         int(e["id"]) for e in elements if e.get("type") == "way" and isinstance(e.get("id"), int)
     }
@@ -184,8 +209,14 @@ def main() -> int:
         f"Mapped {len(rows)} observations across {len(segment_map)} graph segments; "
         f"{skipped} ways not in the routing graph (skipped)."
     )
+    if not rows:
+        record_ingestion("empty_fetch", 0)
+        print("No observations mapped; nothing to write.")
+        return 0
 
-    out_path = args.out or (Path(__file__).resolve().parents[1] / "data" / "osm-feed.csv")
+    out_path = args.out or (
+        Path(__file__).resolve().parents[3] / "data" / f"osm-feed-{args.city or 'delhi'}.csv"
+    )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     with out_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(

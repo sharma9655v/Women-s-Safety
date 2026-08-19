@@ -276,6 +276,10 @@
     <!-- Notifications -->
     <string name="channel_safety">Safety alerts</string>
     <string name="channel_sessions">Sessions</string>
+    <string name="tracking_channel_name">Active safety sessions</string>
+    <string name="tracking_notification_title">Safety session active</string>
+    <string name="tracking_notification_text">Your location is shared only while this session is active.</string>
+    <string name="tracking_notification_stop">Stop session</string>
     <string name="notification_tracking_title">Sessions active</string>
     <string name="notification_tracking_text">Location updates are being shared while this session is active.</string>
     <string name="notification_tracking_stop">Stop</string>

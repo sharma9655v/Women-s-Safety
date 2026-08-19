@@ -11,8 +11,7 @@ import {
   fetchCommunity,
 } from "@/lib/api";
 import type { AdminReport, CommunityPost } from "@/lib/types";
-
-const ADMIN_KEY_STORAGE = "safety-admin-key";
+import { getAdminKey, setAdminKey } from "@/lib/admin-key";
 
 function stateColor(state: string): string {
   if (state === "VERIFIED") return "bg-success/12 text-success";
@@ -21,9 +20,9 @@ function stateColor(state: string): string {
 }
 
 export default function AdminPage() {
-  const [adminKey, setAdminKey] = useState<string>(() => {
+  const [adminKey, setAdminKeyState] = useState<string>(() => {
     if (typeof window === "undefined") return "";
-    return window.localStorage.getItem(ADMIN_KEY_STORAGE) ?? "";
+    return getAdminKey();
   });
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
@@ -102,8 +101,8 @@ export default function AdminPage() {
               type="password"
               value={adminKey}
               onChange={(e) => {
+                setAdminKeyState(e.target.value);
                 setAdminKey(e.target.value);
-                window.localStorage.setItem(ADMIN_KEY_STORAGE, e.target.value);
               }}
               placeholder="Admin key"
               className="h-10 flex-1 rounded-xl border border-border bg-surface px-3 text-sm text-foreground outline-none transition-colors focus:border-primary"

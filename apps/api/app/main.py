@@ -12,6 +12,7 @@ from app.api.alerts import router as alerts_router
 from app.api.auth import router as auth_router
 from app.api.community import router as community_router
 from app.api.contacts import router as contacts_router
+from app.api.cv import router as cv_router
 from app.api.discreet_mode import router as discreet_mode_router
 from app.api.emergency import router as emergency_router
 from app.api.evidence import router as evidence_router
@@ -27,6 +28,7 @@ from app.api.reports import router as reports_router
 from app.api.routes import router as api_router
 from app.api.voice_guidance import router as voice_guidance_router
 from app.config import settings
+from app.metrics import get_metrics, record_request
 
 app = FastAPI(
     title="Map for Women API",
@@ -72,6 +74,12 @@ async def request_id_and_access_log(
             "duration_ms": duration_ms,
         },
     )
+    record_request(
+        path=request.url.path,
+        method=request.method,
+        status_code=response.status_code,
+        duration_s=duration_ms / 1000.0,
+    )
     return response
 
 
@@ -98,9 +106,74 @@ def health() -> dict[str, str]:
     return {"status": "ok", "env": settings.app_env}
 
 
+@app.get("/ready")
+def ready(request: Request) -> Response:
+    """Readiness probe. Reports each component independently and returns 503
+    when a required component is unavailable (liveness stays at /health).
+
+    Components: database (only when DATABASE_URL is configured), OSRM
+    routing engine, CV inference backend. Never blocks longer than the
+    per-component timeout.
+    """
+    import httpx
+    from fastapi.responses import JSONResponse
+
+    components: dict[str, str] = {}
+
+    if settings.database_url:
+        try:
+            from app.db import make_engine
+
+            engine = make_engine()
+            with engine.connect() as conn:
+                conn.execute(__import__("sqlalchemy").text("SELECT 1"))
+            components["database"] = "ok"
+        except Exception as exc:
+            logger.warning("readiness: database check failed: %s", exc)
+            components["database"] = f"error: {exc}"
+
+    try:
+        with httpx.Client(timeout=2.0) as client:
+            probe_url = (
+                f"{settings.osrm_base_url.rstrip('/')}"
+                "/route/v1/walking/77.0,28.6;77.01,28.61?overview=false"
+            )
+            response = client.get(probe_url)
+            components["osrm"] = (
+                "ok" if response.status_code < 500 else f"error: http {response.status_code}"
+            )
+    except Exception as exc:
+        components["osrm"] = f"error: {exc}"
+
+    try:
+        from app.cv.registry import get_cv_service
+
+        service = get_cv_service()
+        components["cv"] = "ok" if service.is_loaded() else "error: not loaded"
+    except Exception as exc:
+        components["cv"] = f"error: {exc}"
+
+    ready_ok = all(value == "ok" for value in components.values())
+    status_code = 200 if ready_ok else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={"status": "ready" if ready_ok else "degraded", "components": components},
+    )
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    """Prometheus text-format metrics (request counts, latency histograms,
+    error counters, CV/ingestion telemetry, model gauges). No PII."""
+    from fastapi.responses import PlainTextResponse
+
+    return PlainTextResponse(get_metrics().render(), media_type="text/plain; version=0.0.4")
+
+
 app.include_router(api_router)
 app.include_router(community_router)
 app.include_router(contacts_router)
+app.include_router(cv_router)
 app.include_router(discreet_mode_router)
 app.include_router(emergency_router)
 app.include_router(evidence_router)
@@ -116,3 +189,20 @@ app.include_router(reports_router)
 app.include_router(alerts_router)
 app.include_router(auth_router)
 app.include_router(voice_guidance_router)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception) -> Response:
+    """Last-resort handler: log server-side, return a sanitized 500 that never
+    leaks internals (stack traces, SQL, config)."""
+
+    from fastapi.responses import JSONResponse
+
+    logger.exception(
+        "unhandled exception",
+        extra={"request_id": request.headers.get("x-request-id", ""), "path": request.url.path},
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )

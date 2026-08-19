@@ -561,4 +561,57 @@ export interface ModelsCurrent {
   evidence_model: string;
   dataset_versions: string[];
   ml_gate: MlGate;
+  cv_models: CVModelInfo[];
+}
+
+/* ------------------------------------------------------------------ */
+/* Computer vision: /api/cv/*                                          */
+/* ------------------------------------------------------------------ */
+
+export interface CVModelInfo {
+  name: string;
+  version: string;
+  kind: string;
+  framework: string;
+  checkpoint_path: string;
+  input_schema: Record<string, unknown>;
+  output_schema: Record<string, unknown>;
+  status: string;
+  metrics: Record<string, number>;
+  dataset_version: string | null;
+  integration: string;
+}
+
+export interface CVHealth {
+  backend: string;
+  loaded: boolean;
+  models: CVModelInfo[];
+  /** True ONLY when a real inference backend is deployed; the dev mock reports false. */
+  is_real_inference: boolean;
+  note: string;
+}
+
+export interface CVListResponse {
+  models: CVModelInfo[];
+  backend: string;
+  loaded: boolean;
+  is_real_inference: boolean;
+}
+
+export interface CVPredictRequest {
+  image_base64: string;
+  kind: "cv_classifier" | "cv_detector";
+  model_name?: string;
+}
+
+export interface CVPredictResponse {
+  kind: string;
+  scores: number[];
+  detections: Record<string, unknown>[];
+  confidence: number | null;
+  model_name: string;
+  model_version: string;
+  /** Distinguishes the development mock (false) from a deployed real backend (true). */
+  is_real_inference: boolean;
+  note: string;
 }

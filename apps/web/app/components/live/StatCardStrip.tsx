@@ -79,7 +79,7 @@ export function StatCardStrip({
           <p className="stat-card-value" style={{ color: "var(--emergency)" }}>
             {incidentCount}
           </p>
-          <p className="stat-card-sublabel">In last 7 days</p>
+          <p className="stat-card-sublabel">Recent community reports</p>
         </div>
         <Link href="/insights" className="stat-card-link">
           View All <ArrowRight className="size-3" aria-hidden />
@@ -119,7 +119,7 @@ export function StatCardStrip({
           <p className="stat-card-value" style={{ color: "var(--info)" }}>
             {contactCount}
           </p>
-          <p className="stat-card-sublabel">Active</p>
+          <p className="stat-card-sublabel">Enabled for SOS</p>
         </div>
         <Link href="/contacts" className="stat-card-link">
           Manage <ArrowRight className="size-3" aria-hidden />

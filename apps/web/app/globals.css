@@ -1590,3 +1590,40 @@ textarea {
     font-size: max(0.625rem, 10px);
   }
 }
+
+/* ============================================================
+   Forced colors (Windows high contrast)
+   Keep risk info readable when the browser overrides colors.
+   ============================================================ */
+
+@media (forced-colors: active) {
+  .risk-legend-swatch,
+  .incident-marker,
+  .alert-marker,
+  .lighting-marker,
+  .facility-marker,
+  .live-status-dot,
+  .map-control-button,
+  .mobile-nav,
+  .mobile-sos-fab,
+  .skip-link {
+    border: 1px solid ButtonText;
+  }
+
+  .route-line,
+  .route-selected {
+    forced-color-adjust: none;
+  }
+
+  .stat-card-value,
+  .stat-card-label,
+  .live-status-row,
+  .segment-tooltip {
+    color: CanvasText;
+  }
+
+  .skip-link:focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}

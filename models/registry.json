@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "models": [
+    {
+      "name": "base_model",
+      "version": "v1",
+      "kind": "cv_classifier",
+      "framework": "keras",
+      "checkpoint_path": "models/Base_model.h5",
+      "input_schema": {
+        "dtype": "float32",
+        "shape": [null, 360, 640, 3],
+        "format": "RGB"
+      },
+      "output_schema": {
+        "units": 20,
+        "activation": "sigmoid",
+        "task": "multi_label_classification"
+      },
+      "dataset_version": null,
+      "metrics": {},
+      "trained_at": null,
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "status": "VALIDATION_REQUIRED",
+      "integration": "not_integrated",
+      "notes": "Keras 2.3.0 checkpoint present in the repository. No training provenance or evaluation metrics are recorded in this repository; validation is pending."
+    },
+    {
+      "name": "faster_rcnn",
+      "version": "v1",
+      "kind": "cv_detector",
+      "framework": "keras",
+      "checkpoint_path": "models/Faster_RCNN_model.hdf5",
+      "input_schema": {
+        "dtype": "float32",
+        "shape": [null, null, 3],
+        "format": "RGB",
+        "task": "object_detection"
+      },
+      "output_schema": {
+        "anchors": 9,
+        "class_logits": 5,
+        "box_regression": 16,
+        "task": "object_detection"
+      },
+      "dataset_version": null,
+      "metrics": {},
+      "trained_at": null,
+      "created_at": "2026-08-18T00:00:00+00:00",
+      "status": "VALIDATION_REQUIRED",
+      "integration": "not_integrated",
+      "notes": "Keras 2.3.0 keras-frcnn-style checkpoint present in the repository. No training provenance or evaluation metrics are recorded in this repository; validation is pending."
+    }
+  ]
+}

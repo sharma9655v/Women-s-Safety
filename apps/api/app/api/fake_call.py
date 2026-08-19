@@ -62,10 +62,33 @@ def create_fake_call(
 
 
 @router.get(
+    "/fake-call/status",
+    response_model=FakeCallStatusResponse | None,
+)
+def get_fake_call_status(
+    request: Request,
+    store: Annotated[FakeCallStore, Depends(get_fake_call_store)],
+    cid: Annotated[str, Depends(require_client_id)],
+) -> FakeCallStatusResponse | None:
+    """Latest fake call for this device, or HTTP 200 with a null body when none
+    exists (same convention as the other active-session endpoints)."""
+    fake_call = store.latest_fake_call(cid)
+    if fake_call is None:
+        return None
+    return FakeCallStatusResponse(
+        id=fake_call.id,
+        caller_name=fake_call.caller_name,
+        caller_number=fake_call.caller_number,
+        scheduled_at=fake_call.scheduled_at.isoformat(),
+        status=fake_call.status,
+    )
+
+
+@router.get(
     "/fake-call/{call_id}",
     response_model=FakeCallStatusResponse,
 )
-def get_fake_call_status(
+def get_fake_call_by_id(
     call_id: str,
     request: Request,
     store: Annotated[FakeCallStore, Depends(get_fake_call_store)],

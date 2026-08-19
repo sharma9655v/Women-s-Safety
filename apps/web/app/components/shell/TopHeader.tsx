@@ -163,7 +163,7 @@ export function TopHeader() {
         </span>
         <span className="hidden text-left lg:block">
           <span className="flex items-center gap-1 text-sm font-medium text-foreground">
-            Hi, User
+            This device
           </span>
           <span className="block text-[10px] text-text-muted">Pseudonymous</span>
         </span>

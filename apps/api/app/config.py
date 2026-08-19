@@ -53,6 +53,20 @@ class Settings(BaseSettings):
     # events keep the honest status "no_channel".
     telegram_bot_token: str = ""
     telegram_chat_id: str = ""
+    # Computer-vision inference backend. "mock" serves a clearly-labelled
+    # development implementation that never pretends to be real ML inference;
+    # "disabled" turns the CV API off entirely (503). A real model backend
+    # replaces the mock behind the same interface once the ML pipeline
+    # produces a validated checkpoint.
+    cv_backend: str = "mock"
+    # Directory holding CV checkpoints (models/ by default). Used for startup
+    # validation and metadata reporting.
+    cv_model_dir: str = "models"
+    # Upper bound for a single CV inference call (seconds).
+    cv_inference_timeout_s: float = 10.0
+    # Optional real backend module path (e.g. "app.cv.keras_impl") that will be
+    # imported when CV_BACKEND=real. Empty means "real backend not deployed".
+    cv_real_backend_module: str = ""
 
 
 settings = Settings()

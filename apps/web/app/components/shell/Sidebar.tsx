@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Bell,
+  BrainCircuit,
   Building2,
   ClipboardCheck,
   Cloud,
@@ -68,6 +69,12 @@ const NAV: { id: string; labelKey: TKey; icon: typeof MapIcon; href: string }[] 
     labelKey: "nav.sources",
     icon: Database,
     href: "/sources",
+  },
+  {
+    id: "models",
+    labelKey: "nav.models",
+    icon: BrainCircuit,
+    href: "/models",
   },
   {
     id: "admin",

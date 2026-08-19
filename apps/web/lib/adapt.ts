@@ -25,6 +25,13 @@ export function adaptRouteResult(route: RouteResult, index: number): RouteCandid
     ([lon, lat]) => [lat, lon] as [number, number],
   );
   const color = riskColor(risk);
+  // Out-of-range probabilities are clamped so the UI never renders a
+  // percentage above 100%.
+  const riskProbability = Math.max(0, Math.min(1, route.risk_probability));
+  const highRiskFraction =
+    route.high_risk_fraction === undefined
+      ? undefined
+      : Math.max(0, Math.min(1, route.high_risk_fraction));
   const freshness = {
     tier: "unknown" as const,
     label: "Unknown",
@@ -62,9 +69,9 @@ export function adaptRouteResult(route: RouteResult, index: number): RouteCandid
     warnings: route.warnings,
     model_version: route.model_version,
     segment_ids: route.segment_ids,
-    high_risk_fraction: route.high_risk_fraction,
+    high_risk_fraction: highRiskFraction,
     risk_exposure_m: route.risk_exposure_m,
-    risk_probability: route.risk_probability,
+    risk_probability: riskProbability,
     confidence_value: route.confidence,
   };
 }

@@ -4,9 +4,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
+from app.cv.registry import cv_models_metadata
 from app.evidence.registry import get_evidence_store
 from app.evidence.store import EvidenceStore
-from app.schemas import MlGate, ModelsCurrentResponse
+from app.schemas import CVModelInfo, MlGate, ModelsCurrentResponse
 from app.segments.registry import get_segments_store
 from app.segments.store import SegmentStore
 
@@ -34,6 +35,25 @@ def models_current(
         and span_days is not None
         and span_days >= MIN_SPAN_DAYS
     )
+    from app.metrics import set_active_model
+
+    set_active_model(RISK_MODEL, gate_open)
+    cv_models = [
+        CVModelInfo(
+            name=m.name,
+            version=m.version,
+            kind=m.kind,
+            framework=m.framework,
+            checkpoint_path=m.checkpoint_path,
+            input_schema=m.input_schema,
+            output_schema=m.output_schema,
+            status=m.status,
+            metrics=m.metrics,
+            dataset_version=m.dataset_version,
+            integration=m.integration,
+        )
+        for m in cv_models_metadata()
+    ]
     return ModelsCurrentResponse(
         risk_model=RISK_MODEL,
         evidence_model=EVIDENCE_MODEL,
@@ -45,4 +65,5 @@ def models_current(
             min_verified_observations=MIN_VERIFIED_OBSERVATIONS,
             min_span_days=MIN_SPAN_DAYS,
         ),
+        cv_models=cv_models,
     )

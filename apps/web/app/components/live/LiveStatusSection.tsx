@@ -40,7 +40,7 @@ export function LiveStatusSection({ band, confidence, loading }: LiveStatusSecti
     <div className="live-status-section">
       <div className="live-status-header">
         <span className="text-xs font-bold text-foreground">Live Status</span>
-        <span className="text-[11px] text-text-muted">Updated just now</span>
+        <span className="text-[11px] text-text-muted">Live from API</span>
       </div>
 
       {loading ? (

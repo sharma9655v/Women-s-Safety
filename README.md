@@ -20,7 +20,7 @@ versioned.
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![OSRM](https://img.shields.io/badge/OSRM-routing-2C8EBB?style=flat-square)
 ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-221%20Python%20%2B%2034%20E2E-3FB950?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-259%20Python-3FB950?style=flat-square)
 ![Status](https://img.shields.io/badge/status-active-2EA043?style=flat-square)
 
 ---
@@ -542,9 +542,17 @@ Women-s-Safety/
 ├── e2e/                                 # Playwright smoke suites (Edge)
 │   ├── verify.js                        # 26 checks — routing, report loop, mobile, civic
 │   ├── verify-extra.js                  # 8 checks — SOS flow, edge cases
-│   └── theme-check.js                   # light/dark/system themes
+│   ├── theme-check.js                   # light/dark/system themes
+│   └── loadtest.py                      # async load harness (PASS on smoke: ~310 req/s)
 │
 ├── docs/                                # Technical documentation
+│   ├── architecture.md                  # Current-state system architecture
+│   ├── api.md                           # Current API reference (all routers)
+│   ├── deployment.md                    # Dev/prod deployment + checklist
+│   ├── data-pipeline.md                 # ingest_feed / osm_feed / provenance rules
+│   ├── gis.md                           # 10-city registry + validation CLI
+│   ├── model-integration.md             # Registry, gate, CV backends
+│   ├── testing.md                       # Test/lint/type/load commands
 │   ├── current-status.md                # Honest per-feature status (Verified/Partial/Planned)
 │   ├── demo.md                          # One-command demo runbook
 │   ├── sih-demo.md                      # Timed judge demo script
@@ -707,8 +715,11 @@ uv run --directory apps/api python -m app.ingest_feed feeds/my-feed.csv \
 uv run --directory apps/api python -m app.ingest_feed feeds/my-feed.jsonl \
   --source my_feed --licence "CC BY 4.0" --write             # insert into PostGIS
 
-uv run --directory apps/api python -m app.osm_feed           # OSM Overpass fetch + validate
-uv run --directory apps/api python -m app.osm_feed --write   # fetch + insert into PostGIS
+uv run --directory apps/api python -m app.osm_feed --city delhi          # OSM Overpass fetch + validate
+uv run --directory apps/api python -m app.osm_feed --city mumbai --write # fetch + insert into PostGIS
+uv run --directory apps/api python -m app.osm_feed --bbox 28.40,76.83,28.89,77.35
+# City-level validation report + terminal table (10 cities in the registry):
+uv run --directory apps/api python -m app.gis.validation --city delhi --fixture 50
 ```
 
 ---
@@ -753,8 +764,12 @@ Response fields (per route type): `distance`, `duration`, `risk_probability`,
 ### Model endpoints
 
 - `GET /api/models/current` returns the active model (`deterministic-baseline-v1`,
-  `evidence-baseline-v1`), dataset versions, and the ML gate status (`open: false` today).
-- The CV checkpoints in `models/` have **no inference endpoint** — they are not integrated.
+  `evidence-baseline-v1`), dataset versions, the ML gate status (`open: false` today)
+  and the CV checkpoint registry.
+- The CV checkpoints in `models/` are registered (`models/registry.json`, both
+  `VALIDATION_REQUIRED`, not integrated) and served through the **development mock**
+  backend (`POST /api/cv/predict`) which reports `is_real_inference=false` — no
+  real ML inference is ever claimed while the mock is active.
 
 ---
 
@@ -765,7 +780,8 @@ Full contract: [`api-spec.md`](api-spec.md)
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| GET | `/health` | Service health + environment |
+| GET | `/health` · `/ready` | Service health + environment; readiness (DB/OSRM/CV) for orchestrators |
+| GET | `/metrics` | Prometheus text metrics (request counts, latency, ingest, CV, active models) |
 | POST | `/api/routes` | Route planning — 3 explainable profiles, risk exposure, warnings; optional `hour_ist`; per-IP rate limit |
 | GET | `/api/geocode` | Place search (monitored areas + facilities, by name) |
 | GET | `/api/segments/{id}/evidence` | Aggregated per-segment evidence (freshness, confidence, conflicts) — never reporter identity |
@@ -776,7 +792,8 @@ Full contract: [`api-spec.md`](api-spec.md)
 | GET | `/api/admin/reports` | Review queue — descriptions/identity never returned (`X-Admin-Key`) |
 | POST | `/api/admin/reports/{id}/verify` · `/reject` | Sticky, audited verification decisions |
 | POST | `/api/admin/recompute` | Deterministic recomputation of verification states |
-| GET | `/api/models/current` | Active model + dataset versions + ML gate status |
+| GET | `/api/models/current` | Active model + dataset versions + ML gate status + CV registry |
+| GET/POST | `/api/cv/models` · `/api/cv/health` · `/api/cv/predict` | CV checkpoint registry, backend health (`is_real_inference`), mock/real inference |
 | POST | `/api/auth/device` · `/api/auth/revoke` | Mint / revoke device-session tokens |
 | GET/POST/PUT/DELETE | `/api/contacts` | Trusted contacts |
 | GET/POST | `/api/community`, `/api/admin/community/{id}/verify|reject` | Community feed + moderation |
@@ -879,13 +896,15 @@ This is defense-in-depth, not a security guarantee.
   requires the full PBF download and a rebuild.
 - **Verification is manual** — VERIFIED/REJECTED states come from admin review; no automated
   cross-validation yet.
-- **No field validation or load testing** — no large-scale user trial, no production load tests,
-  no real-time sensor integration (streetlight lifecycle is a recorded research experiment only).
+- **No field validation** — no large-scale user trial; load testing exists as a harness
+  (`e2e/loadtest.py`, smoke-tested ~310 req/s on the in-memory store) but no production
+  stack has been load-tested or stress-tested under real traffic.
 - **Operational gaps** — CORS defaults to `http://localhost:3000`; rate limits are per-IP-hash;
   audit history has no dedicated UI; offline fallback is an in-memory snapshot, not device-level
   caching (no PWA).
-- **Android app** — the `android/` folder contains Gradle build configuration and resources only;
-  no Kotlin sources are present yet (see `docs/android-feature-matrix.md` for the planned parity).
+- **Android app** — full Kotlin sources exist (map, routes, SOS, guardian, report, model status)
+  but have **not been compiled or run on this machine** (no JDK/Android SDK here); the first
+  build must happen in Android Studio. See `docs/android-feature-matrix.md` for parity.
 
 ---
 
@@ -900,11 +919,12 @@ This is defense-in-depth, not a security guarantee.
 | Ablation + synthetic calibration experiments (recorded runs) | ✅ DONE |
 | Auth hardening, observability, rate limits, admin review | ✅ DONE |
 | ML training gate (≥ 1,000 VERIFIED observations, ≥ 90 days) | 🔄 IN PROGRESS — gate closed, no model trained |
-| Real civic/sensor data integration | 🔄 IN PROGRESS — validated harness + first real feed (OSM Delhi: 3,535 REPORTED observations) |
-| CV model integration (classification + detection checkpoints) | ⬜ PENDING — checkpoints present, not registered or wired |
-| Multi-city validation (India-wide OSRM graph) | ⬜ PLANNED |
-| Production load testing + monitoring | ⬜ PENDING |
-| Android app implementation (Kotlin sources) | ⬜ PENDING — scaffold + parity matrix defined |
+| Real civic/sensor data integration | 🔄 IN PROGRESS — validated harness + real feeds (OSM multi-city: 3,535 REPORTED observations in Delhi; fixture/real/demo counters kept separate) |
+| CV model integration (classification + detection checkpoints) | 🟢 INFRA DONE — registered (`registry.json`, `VALIDATION_REQUIRED`), mock backend live (`/api/cv/*` with `is_real_inference=false`); real backend requires a validated checkpoint |
+| Multi-city validation | 🟢 REGISTRY + HARNESS DONE — 10-city registry + `app.gis.validation` CLI + versioned reports; India-wide OSRM graph still ⬜ PLANNED |
+| Production load testing + monitoring | 🟢 HARNESS + SMOKE DONE — `e2e/loadtest.py` (PASS, 0 errors, ~310 req/s) + `/metrics` + `/ready`; production-stack load test still ⬜ PENDING |
+| Android app implementation (Kotlin sources) | 🟢 SOURCES DONE — full app written (map/routes/SOS/guardian/report/models) + DTO unit tests; 🔄 UNVERIFIED BUILD — no JDK/SDK on this machine, build in Android Studio |
+| Observability (readiness, metrics, sanitized errors) | ✅ DONE |
 
 ---
 
