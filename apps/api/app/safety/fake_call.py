@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from functools import lru_cache
 from typing import Any
 
@@ -108,9 +108,9 @@ class MemoryFakeCallStore(FakeCallStore):
         # Automatically trigger the call once its scheduled time has passed.
         if (
             call.status == "SCHEDULED"
-            and datetime.now(timezone.utc) >= call.scheduled_at
+            and datetime.now(UTC) >= call.scheduled_at
         ):
-            triggered_at = datetime.now(timezone.utc)
+            triggered_at = datetime.now(UTC)
 
             call = FakeCallSession(
                 id=call.id,
@@ -221,9 +221,9 @@ class PostgresFakeCallStore(FakeCallStore):
             # Automatically trigger the call once its scheduled time has passed.
             if (
                 row[6] == "SCHEDULED"
-                and datetime.now(timezone.utc) >= row[4]
+                and datetime.now(UTC) >= row[4]
             ):
-                triggered_at = datetime.now(timezone.utc)
+                triggered_at = datetime.now(UTC)
 
                 conn.execute(
                     text(

@@ -16,9 +16,9 @@ from app.safety import (
     MemoryJourneyCheckinStore,
     MemoryNotificationStore,
 )
+from app.safety.journey_checkin import get_journey_checkin_store
 from app.safety.notifications import get_notification_store
 from app.safety.sessions import get_sessions_store
-from app.safety.journey_checkin import get_journey_checkin_store
 
 CLIENT_A = "a" * 32
 

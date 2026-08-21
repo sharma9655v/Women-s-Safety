@@ -253,12 +253,25 @@ def test_evidence_hash_is_stable_and_content_bound() -> None:
 
 
 def make_evidence_store() -> MemoryEvidenceStore:
+    now = datetime.now(UTC)
+
     store = MemoryEvidenceStore(
         observations=[
-            obs(1, "harassment", NOW - timedelta(hours=3)),
-            obs(1, "harassment", NOW - timedelta(hours=5), source="city_data", reliability=0.9),
-            obs(1, "streetlight_not_working", NOW - timedelta(days=2), value={"working": False}),
-            obs(2, "poor_lighting", NOW - timedelta(days=400)),  # expired
+            obs(1, "harassment", now - timedelta(hours=3)),
+            obs(
+                1,
+                "harassment",
+                now - timedelta(hours=5),
+                source="city_data",
+                reliability=0.9,
+            ),
+            obs(
+                1,
+                "streetlight_not_working",
+                now - timedelta(days=2),
+                value={"working": False},
+            ),
+            obs(2, "poor_lighting", now - timedelta(days=400)),  # expired
         ],
         segment_ids=[1, 2],
     )
