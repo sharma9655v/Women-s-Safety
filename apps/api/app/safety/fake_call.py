@@ -106,10 +106,7 @@ class MemoryFakeCallStore(FakeCallStore):
             return None
 
         # Automatically trigger the call once its scheduled time has passed.
-        if (
-            call.status == "SCHEDULED"
-            and datetime.now(UTC) >= call.scheduled_at
-        ):
+        if call.status == "SCHEDULED" and datetime.now(UTC) >= call.scheduled_at:
             triggered_at = datetime.now(UTC)
 
             call = FakeCallSession(
@@ -130,11 +127,7 @@ class MemoryFakeCallStore(FakeCallStore):
         self,
         client_id_value: str,
     ) -> FakeCallSession | None:
-        calls = [
-            c
-            for c in self._calls.values()
-            if c.client_id == client_id_value
-        ]
+        calls = [c for c in self._calls.values() if c.client_id == client_id_value]
 
         if not calls:
             return None
@@ -152,9 +145,7 @@ def get_fake_call_store() -> FakeCallStore:
         engine = _make_engine()
 
         with engine.connect() as conn:
-            conn.execute(
-                text("SELECT 1 FROM fake_call_sessions LIMIT 1")
-            )
+            conn.execute(text("SELECT 1 FROM fake_call_sessions LIMIT 1"))
 
         return PostgresFakeCallStore(engine)
 
@@ -219,10 +210,7 @@ class PostgresFakeCallStore(FakeCallStore):
                 return None
 
             # Automatically trigger the call once its scheduled time has passed.
-            if (
-                row[6] == "SCHEDULED"
-                and datetime.now(UTC) >= row[4]
-            ):
+            if row[6] == "SCHEDULED" and datetime.now(UTC) >= row[4]:
                 triggered_at = datetime.now(UTC)
 
                 conn.execute(
