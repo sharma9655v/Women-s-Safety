@@ -4,6 +4,7 @@ import { Check, ClipboardCheck, KeyRound, Loader2, MessagesSquare, X } from "luc
 import { useCallback, useEffect, useState } from "react";
 import { Card, CardHeader } from "@/app/components/ui/Card";
 import { Pill } from "@/app/components/ui/Pill";
+import { getAdminKey, setAdminKey } from "@/lib/admin-key";
 import {
   adminModerateCommunityPost,
   adminSetVerification,
@@ -11,7 +12,6 @@ import {
   fetchCommunity,
 } from "@/lib/api";
 import type { AdminReport, CommunityPost } from "@/lib/types";
-import { getAdminKey, setAdminKey } from "@/lib/admin-key";
 
 function stateColor(state: string): string {
   if (state === "VERIFIED") return "bg-success/12 text-success";

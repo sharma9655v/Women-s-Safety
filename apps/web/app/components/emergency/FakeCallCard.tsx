@@ -12,10 +12,7 @@ import type { FakeCallSession } from "@/lib/types";
 
 const POLL_MS = 10000;
 
-const STATUS_TONE: Record<
-  FakeCallSession["status"],
-  "success" | "warning" | "info" | "default"
-> = {
+const STATUS_TONE: Record<FakeCallSession["status"], "success" | "warning" | "info" | "default"> = {
   SCHEDULED: "info",
   TRIGGERED: "success",
   DISMISSED: "default",
@@ -90,19 +87,13 @@ export function FakeCallCard() {
 
       setSession(created);
     } catch (e) {
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Could not start the fake call. Try again.",
-      );
+      setError(e instanceof Error ? e.message : "Could not start the fake call. Try again.");
     } finally {
       setBusy(false);
     }
   };
 
-  const running =
-    session &&
-    (session.status === "SCHEDULED" || session.status === "TRIGGERED");
+  const running = session && (session.status === "SCHEDULED" || session.status === "TRIGGERED");
 
   return (
     <Card className="border-info/20">
@@ -110,11 +101,7 @@ export function FakeCallCard() {
         title="Fake incoming call"
         subtitle="Simulated call so you can step away — no one is actually calling."
         action={
-          session ? (
-            <Badge tone={STATUS_TONE[session.status]}>
-              {session.status}
-            </Badge>
-          ) : undefined
+          session ? <Badge tone={STATUS_TONE[session.status]}>{session.status}</Badge> : undefined
         }
       />
 
@@ -133,15 +120,12 @@ export function FakeCallCard() {
             <div className="space-y-2.5">
               <p className="flex items-center gap-1.5 text-sm text-foreground">
                 <PhoneCall className="size-3.5 text-info" aria-hidden />
-                Incoming call from{" "}
-                <span className="font-semibold">
-                  {session.caller_name}
-                </span>
+                Incoming call from <span className="font-semibold">{session.caller_name}</span>
               </p>
 
               <p className="text-xs text-text-muted">
-                Triggered at {formatTime(session.scheduled_at)} — pretend to
-                answer and walk away. It is only an app simulation.
+                Triggered at {formatTime(session.scheduled_at)} — pretend to answer and walk away.
+                It is only an app simulation.
               </p>
 
               {session.status === "SCHEDULED" ? (
@@ -163,8 +147,8 @@ export function FakeCallCard() {
           ) : (
             <div className="space-y-2.5">
               <p className="text-xs text-text-muted">
-                Give yourself a believable excuse to leave. The caller is
-                simulated — nobody is on the line.
+                Give yourself a believable excuse to leave. The caller is simulated — nobody is on
+                the line.
               </p>
 
               <div className="flex gap-2">
@@ -177,11 +161,7 @@ export function FakeCallCard() {
                   className="h-9"
                 />
 
-                <Button
-                  size="sm"
-                  loading={busy}
-                  onClick={() => void trigger()}
-                >
+                <Button size="sm" loading={busy} onClick={() => void trigger()}>
                   <PhoneCall className="size-3.5" aria-hidden />
                   Trigger call
                 </Button>
@@ -189,9 +169,7 @@ export function FakeCallCard() {
             </div>
           )}
 
-          {error ? (
-            <p className="mt-2 text-xs text-danger">{error}</p>
-          ) : null}
+          {error ? <p className="mt-2 text-xs text-danger">{error}</p> : null}
         </div>
       </div>
     </Card>

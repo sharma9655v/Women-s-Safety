@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import ModelsPage from "./page";
 import type { CVHealth, CVListResponse, ModelsCurrent } from "@/lib/types";
+import ModelsPage from "./page";
 
 vi.mock("@/lib/api", () => ({
   fetchModelsCurrent: vi.fn(),
