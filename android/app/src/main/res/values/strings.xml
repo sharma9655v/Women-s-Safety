@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Map for Women</string>
+
+    <!-- Common -->
+    <string name="action_retry">Retry</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
+    <string name="action_ok">OK</string>
+    <string name="action_save">Save</string>
+    <string name="action_start">Start</string>
+    <string name="action_stop">Stop</string>
+    <string name="action_end">End</string>
+    <string name="loading">Loading…</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_offline">You are offline. Live data needs a connection.</string>
+    <string name="error_rate_limited">Too many requests — please try again later.</string>
+    <string name="error_duplicate">This looks like a duplicate — the backend already received it.</string>
+    <string name="error_not_found">Not found on the backend.</string>
+    <string name="state_empty">Nothing here yet.</string>
+    <string name="state_no_data">No data available for this area yet — we never guess.</string>
+
+    <!-- Home / routing -->
+    <string name="home_title">Map for Women</string>
+    <string name="search_hint">Search an area or facility</string>
+    <string name="search_no_results">No matches. Search covers known Delhi areas and facilities.</string>
+    <string name="from_hint">From</string>
+    <string name="to_hint">To</string>
+    <string name="use_my_location">Use my location</string>
+    <string name="plan_route">Plan Route</string>
+    <string name="route_mode_walking">Walking</string>
+    <string name="route_mode_driving">Driving</string>
+    <string name="route_mode_cycling">Cycling</string>
+    <string name="safety_priority">Safety Priority</string>
+    <string name="balanced">Balanced</string>
+    <string name="time_priority">Time Priority</string>
+    <string name="select_destination_first">Choose a destination to plan a route.</string>
+    <string name="no_routes_found">No routes found for these points.</string>
+    <string name="routing_note">Route safety scores are estimates based on reported evidence — never a guarantee.</string>
+    <string name="safety_score_label">Safety</string>
+    <string name="confidence_label">Confidence</string>
+    <string name="uncertainty_label">Uncertainty</string>
+    <string name="risk_exposure_label">Risk exposure</string>
+    <string name="high_risk_fraction_label">High-risk share</string>
+    <string name="compare_routes">Compare</string>
+    <string name="route_warnings">Warnings</string>
+    <string name="reasons_label">Why</string>
+
+    <!-- Evidence -->
+    <string name="evidence_title">Evidence</string>
+    <string name="evidence_total">Total observations</string>
+    <string name="evidence_freshness">Freshness</string>
+    <string name="evidence_confidence">Confidence</string>
+    <string name="evidence_conflicts">Conflicts</string>
+    <string name="evidence_no_data">No evidence reported for this segment yet.</string>
+    <string name="evidence_model">Model</string>
+    <string name="evidence_sources">Sources</string>
+    <string name="evidence_states">States</string>
+
+    <!-- Map layers -->
+    <string name="layer_incidents">Incidents</string>
+    <string name="layer_lighting">Lighting</string>
+    <string name="layer_heatmap">Safety heatmap</string>
+    <string name="layer_facilities">Facilities</string>
+    <string name="layer_alerts">Alerts</string>
+    <string name="layer_areas">Areas</string>
+    <string name="coverage_note">Coverage: Delhi · limited to areas with reported evidence</string>
+    <string name="location_permission_needed">Location permission is needed to use your position.</string>
+    <string name="location_disabled">Location services are switched off on this device.</string>
+    <string name="location_stale">Your position is stale — showing the last known fix.</string>
+    <string name="location_unavailable">No position fix yet — showing Delhi centre.</string>
+    <string name="location_timeout">Position fix timed out. Try again.</string>
+    <string name="grant_location">Allow location</string>
+
+    <!-- SOS -->
+    <string name="sos_title">SOS</string>
+    <string name="sos_hold">Hold to start SOS</string>
+    <string name="sos_countdown">Sending in %1$d…</string>
+    <string name="sos_cancel_countdown">Cancel</string>
+    <string name="sos_active">SOS active</string>
+    <string name="sos_started_at">Started</string>
+    <string name="sos_notify_status">Notification status</string>
+    <string name="sos_end">End SOS</string>
+    <string name="sos_end_reason">Ended by user</string>
+    <string name="sos_error_no_location">SOS needs a position. Try again when you have a fix.</string>
+    <string name="sos_error">SOS could not be started. Please call 112.</string>
+    <string name="sos_call_helpline">Call 112</string>
+    <string name="sos_call_women">Call 1091</string>
+    <string name="sos_call_legal">Call 181</string>
+    <string name="sos_location_sharing">Location sharing</string>
+    <string name="sos_location_sharing_note">Your location updates are shared only while this session is active.</string>
+
+    <!-- Guardian -->
+    <string name="guardian_title">Guardian Journey</string>
+    <string name="guardian_start">Start guardian journey</string>
+    <string name="guardian_contacts_hint">At least one trusted contact</string>
+    <string name="guardian_eta_label">Expected arrival</string>
+    <string name="guardian_checkin_deadline">Check-in deadline</string>
+    <string name="guardian_last_checkin">Last check-in</string>
+    <string name="guardian_deviation">Deviation detected — you are away from the planned route.</string>
+    <string name="guardian_escalation">Escalation stage %1$d — contacts have been notified about a missed check-in.</string>
+    <string name="guardian_checkin_now">I am safe — check in</string>
+    <string name="guardian_end">End journey</string>
+    <string name="guardian_end_arrived">I arrived</string>
+    <string name="guardian_end_cancelled">Cancel journey</string>
+    <string name="guardian_no_primary">Add a trusted contact before starting a guardian journey.</string>
+    <string name="guardian_geometry_note">The planned route is sent so deviation can be detected. It is never invented.</string>
+
+    <!-- Sharing -->
+    <string name="sharing_title">Location sharing</string>
+    <string name="sharing_start">Share location</string>
+    <string name="sharing_duration">Duration</string>
+    <string name="sharing_minutes">30 min</string>
+    <string name="sharing_hour">1 hour</string>
+    <string name="sharing_hours">2 hours</string>
+    <string name="sharing_active">Sharing active until %1$s</string>
+    <string name="sharing_stop">Stop sharing</string>
+    <string name="sharing_recipients">Recipients</string>
+    <string name="sharing_note">Consent is explicit and sessions expire on their own.</string>
+
+    <!-- Check-in -->
+    <string name="checkin_title">Journey check-in</string>
+    <string name="checkin_destination">Destination</string>
+    <string name="checkin_interval">Check-in every</string>
+    <string name="checkin_interval_15">15 min</string>
+    <string name="checkin_interval_30">30 min</string>
+    <string name="checkin_interval_60">60 min</string>
+    <string name="checkin_missed">A check-in was missed — escalation is underway.</string>
+    <string name="checkin_done">Checked in</string>
+
+    <!-- Contacts -->
+    <string name="contacts_title">Trusted contacts</string>
+    <string name="contacts_empty">No trusted contacts yet. Add people who can help you in an emergency.</string>
+    <string name="contact_add">Add contact</string>
+    <string name="contact_name">Name</string>
+    <string name="contact_phone">Phone</string>
+    <string name="contact_relationship">Relationship</string>
+    <string name="contact_role_primary">Primary</string>
+    <string name="contact_role_secondary">Secondary</string>
+    <string name="contact_enabled">Enabled</string>
+    <string name="contact_primary_note">Primary contacts are notified first in an emergency.</string>
+    <string name="contact_delete">Delete</string>
+    <string name="contact_privacy">Contact numbers are encrypted at rest and never shown to others.</string>
+
+    <!-- Report -->
+    <string name="report_title">Report an incident</string>
+    <string name="report_category">Category</string>
+    <string name="report_description_hint">Describe what happened (optional)</string>
+    <string name="report_photo">Attach a photo (optional)</string>
+    <string name="report_attach_segment">Attached to road segment #%1$d from your last planned route</string>
+    <string name="report_no_segment">Plan a route first so the report attaches to a road segment.</string>
+    <string name="report_submit">Submit report</string>
+    <string name="report_submitted">Report received (id %1$d). Thank you — it goes to the evidence engine anonymously.</string>
+    <string name="report_anonymous_note">Reports are anonymous: no identity fields are requested or stored.</string>
+    <string name="category_streetlight_not_working">Streetlight not working</string>
+    <string name="category_poor_lighting">Poor lighting</string>
+    <string name="category_harassment">Harassment</string>
+    <string name="category_suspicious_activity">Suspicious activity</string>
+    <string name="category_blocked_sidewalk">Blocked sidewalk</string>
+    <string name="category_unsafe_transport">Unsafe transport</string>
+    <string name="category_road_hazard">Road hazard</string>
+    <string name="category_other">Other</string>
+
+    <!-- Quick report -->
+    <string name="quick_report_title">Quick report</string>
+    <string name="quick_report_note">A one-tap anonymous report at your current location.</string>
+
+    <!-- Alerts -->
+    <string name="alerts_title">Safety alerts</string>
+    <string name="alerts_empty">No verified safety alerts nearby.</string>
+    <string name="alerts_freshness">Fresh</string>
+    <string name="alerts_stale">Stale</string>
+    <string name="alerts_verified">Verified</string>
+    <string name="alerts_reported">Reported</string>
+    <string name="alerts_rejected">Rejected</string>
+
+    <!-- Facilities -->
+    <string name="facilities_title">Nearby help</string>
+    <string name="facilities_empty">No facilities found in this area.</string>
+    <string name="facility_police">Police</string>
+    <string name="facility_hospital">Hospital</string>
+    <string name="facility_pharmacy">Pharmacy</string>
+    <string name="facility_fire">Fire</string>
+    <string name="facility_bus">Bus</string>
+    <string name="facility_metro">Metro</string>
+    <string name="facility_shelter">Shelter</string>
+    <string name="facility_call">Call</string>
+    <string name="facility_navigate">Navigate</string>
+    <string name="facility_distance_unknown">distance unknown</string>
+
+    <!-- Community -->
+    <string name="community_title">Community</string>
+    <string name="community_empty">No community posts yet.</string>
+    <string name="community_post">Post</string>
+    <string name="community_kind">Kind</string>
+    <string name="community_kind_alert">Alert</string>
+    <string name="community_kind_route_update">Route update</string>
+    <string name="community_kind_photo">Photo</string>
+    <string name="community_location">Location</string>
+    <string name="community_text">Text</string>
+    <string name="community_pending">Pending moderation</string>
+    <string name="community_verified">Verified</string>
+    <string name="community_rejected">Rejected</string>
+    <string name="community_moderation_note">Posts start pending and are moderated before they read as verified.</string>
+
+    <!-- Privacy -->
+    <string name="privacy_title">Privacy</string>
+    <string name="privacy_location_sharing">Location sharing</string>
+    <string name="privacy_guardian">Guardian journey</string>
+    <string name="privacy_emergency">Emergency session</string>
+    <string name="privacy_voice_guidance">Voice guidance</string>
+    <string name="privacy_discreet_mode">Discreet mode</string>
+    <string name="privacy_contacts_count">Trusted contacts</string>
+    <string name="privacy_active">Active</string>
+    <string name="privacy_inactive">Inactive</string>
+    <string name="privacy_unknown">Unknown</string>
+    <string name="privacy_no_history_note">Report history is anonymous and cannot be listed per device.</string>
+    <string name="privacy_settings">Privacy settings</string>
+    <string name="privacy_language">Voice language</string>
+    <string name="language_english">English</string>
+    <string name="language_hindi">हिन्दी</string>
+
+    <!-- Preferences -->
+    <string name="preferences_title">Route preferences</string>
+    <string name="pref_better_lit">Prefer better-lit roads</string>
+    <string name="pref_main_roads">Prefer main roads</string>
+    <string name="pref_near_emergency">Prefer routes near emergency services</string>
+    <string name="pref_avoid_hazards">Avoid known hazards</string>
+    <string name="pref_avoid_isolated">Avoid isolated roads</string>
+    <string name="pref_minimize_walking">Minimize walking time</string>
+    <string name="pref_default_profile">Default route profile</string>
+    <string name="pref_note">Preferences influence routing but never bypass the safety model.</string>
+
+    <!-- Discreet mode -->
+    <string name="discreet_title">Discreet mode</string>
+    <string name="discreet_enabled">Discreet mode</string>
+    <string name="discreet_gesture">Quick SOS gesture</string>
+    <string name="discreet_triple_tap">Triple-tap</string>
+    <string name="discreet_exit_neutral">Exit to a neutral screen</string>
+    <string name="discreet_note">Discreet mode hides emergency actions behind a neutral screen.</string>
+
+    <!-- Fake call -->
+    <string name="fake_call_title">Fake call</string>
+    <string name="fake_call_name">Caller name</string>
+    <string name="fake_call_schedule">Schedule call</string>
+    <string name="fake_call_delay_30">30 s</string>
+    <string name="fake_call_delay_60">60 s</string>
+    <string name="fake_call_incoming">Incoming call</string>
+    <string name="fake_call_answer">Answer</string>
+    <string name="fake_call_decline">Decline</string>
+    <string name="fake_call_note">Fake calls ring inside the app, like in the browser version.</string>
+
+    <!-- Voice -->
+    <string name="voice_title">Voice guidance</string>
+    <string name="voice_enabled">Voice guidance</string>
+    <string name="voice_start">Start voice guidance</string>
+    <string name="voice_stop">Stop voice guidance</string>
+    <string name="voice_unavailable">Text-to-speech is not available on this device.</string>
+
+    <!-- Settings / misc -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_language">App language</string>
+    <string name="settings_model">Active models</string>
+    <string name="settings_risk_model">Risk model</string>
+    <string name="settings_evidence_model">Evidence model</string>
+    <string name="resources_title">Resources</string>
+    <string name="helpline_police">Police (112)</string>
+    <string name="helpline_women">Women helpline (1091)</string>
+    <string name="helpline_legal">Legal aid (181)</string>
+    <string name="onboarding_title">Welcome to Map for Women</string>
+    <string name="onboarding_text">Plan safer routes from real, reported evidence — never a guarantee. Location and notification permissions make SOS and live sharing possible.</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_skip">Skip</string>
+
+    <!-- Notifications -->
+    <string name="channel_safety">Safety alerts</string>
+    <string name="channel_sessions">Sessions</string>
+    <string name="tracking_channel_name">Active safety sessions</string>
+    <string name="tracking_notification_title">Safety session active</string>
+    <string name="tracking_notification_text">Your location is shared only while this session is active.</string>
+    <string name="tracking_notification_stop">Stop session</string>
+    <string name="notification_tracking_title">Sessions active</string>
+    <string name="notification_tracking_text">Location updates are being shared while this session is active.</string>
+    <string name="notification_tracking_stop">Stop</string>
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_empty">No notification events yet.</string>
+
+    <!-- Safety areas / insights -->
+    <string name="areas_title">Area insights</string>
+    <string name="areas_score_label">Score</string>
+    <string name="areas_lighting">Lighting</string>
+    <string name="areas_crowd">Crowd level</string>
+    <string name="areas_crowd_unavailable">Crowd data is not available yet — we never guess it.</string>
+    <string name="areas_coverage">Coverage</string>
+</resources>

@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+map_for_women_research.egg-info/PKG-INFO
+map_for_women_research.egg-info/SOURCES.txt
+map_for_women_research.egg-info/dependency_links.txt
+map_for_women_research.egg-info/requires.txt
+map_for_women_research.egg-info/top_level.txt
+research/__init__.py
+research/ablation.py
+research/baselines.py
+research/calibration.py
+research/lifecycle.py
+research/stress.py
+tests/test_ablation.py
+tests/test_baselines.py
+tests/test_calibration.py

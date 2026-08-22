@@ -1,0 +1,11 @@
+{
+ "name": "feed-osm",
+ "generated_at": "2026-08-15T06:02:55.851230+00:00",
+ "observation_count": 3535,
+ "rows_rejected": 0,
+ "duplicates_dropped": 0,
+ "source_type": "osm",
+ "licence": "ODbL 1.0",
+ "feed_file": "osm-feed.csv",
+ "sha256": "63c1f6b454094ff75bb06d6c59244c9ec3870172b0e2a657119cfd826083f910"
+}

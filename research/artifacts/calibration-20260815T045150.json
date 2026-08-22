@@ -1,0 +1,102 @@
+{
+  "experiment": "calibration-synthetic",
+  "model_version": "deterministic-baseline-v1",
+  "evidence_model_version": "evidence-baseline-v1",
+  "now": "2026-08-14T12:00:00+00:00",
+  "run_at": "2026-08-15T04:51:50+00:00",
+  "levels": [
+    {
+      "true_risk": 0.05,
+      "n": 40,
+      "mean_modeled_risk": 0.05,
+      "recipe": [
+        0,
+        0.0,
+        0.6,
+        2000.0,
+        null,
+        null,
+        false
+      ]
+    },
+    {
+      "true_risk": 0.15,
+      "n": 40,
+      "mean_modeled_risk": 0.1642,
+      "recipe": [
+        0,
+        0.0,
+        0.6,
+        null,
+        "footway",
+        null,
+        true
+      ]
+    },
+    {
+      "true_risk": 0.3,
+      "n": 40,
+      "mean_modeled_risk": 0.3055,
+      "recipe": [
+        1,
+        1.0,
+        0.4,
+        250.0,
+        null,
+        null,
+        false
+      ]
+    },
+    {
+      "true_risk": 0.45,
+      "n": 40,
+      "mean_modeled_risk": 0.4493,
+      "recipe": [
+        1,
+        1.0,
+        0.8,
+        500.0,
+        "service",
+        null,
+        false
+      ]
+    },
+    {
+      "true_risk": 0.6,
+      "n": 40,
+      "mean_modeled_risk": 0.5998,
+      "recipe": [
+        1,
+        1.0,
+        0.8,
+        500.0,
+        null,
+        null,
+        true
+      ]
+    },
+    {
+      "true_risk": 0.75,
+      "n": 40,
+      "mean_modeled_risk": 0.7501,
+      "recipe": [
+        3,
+        1.0,
+        0.95,
+        500.0,
+        null,
+        null,
+        true
+      ]
+    }
+  ],
+  "n_segments": 240,
+  "unreachable_levels": [],
+  "mae_risk_vs_truth": 0.0034,
+  "spearman_rho_risk_vs_truth": 1.0,
+  "brier_vs_synthetic_outcomes": 0.1809,
+  "ideal_brier_mean_p1mp": 0.1767,
+  "brier_excess_over_ideal": 0.0042,
+  "ece_10_bins_risk_vs_truth": 0.0034,
+  "note": "Synthetic ground truth validates internal consistency and ordering only; real calibration requires observed outcomes from validated feeds (gated, none exist)."
+}

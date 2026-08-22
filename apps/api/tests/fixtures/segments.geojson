@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "properties": { "id": 1, "road_type": "residential", "lit": "yes" },
+      "geometry": { "type": "LineString", "coordinates": [[77.2, 28.6], [77.205, 28.6]] }
+    },
+    {
+      "type": "Feature",
+      "id": 2,
+      "properties": { "id": 2, "road_type": "residential", "lit": "no" },
+      "geometry": { "type": "LineString", "coordinates": [[77.205, 28.6], [77.21, 28.6]] }
+    },
+    {
+      "type": "Feature",
+      "id": 3,
+      "properties": { "id": 3, "road_type": "primary", "lit": null },
+      "geometry": { "type": "LineString", "coordinates": [[77.21, 28.6], [77.215, 28.6]] }
+    },
+    {
+      "type": "Feature",
+      "id": 5,
+      "properties": { "id": 5, "road_type": "residential", "lit": "yes" },
+      "geometry": { "type": "LineString", "coordinates": [[77.21, 28.599], [77.21, 28.5995]] }
+    },
+    {
+      "type": "Feature",
+      "id": 4,
+      "properties": { "id": 4, "road_type": "residential", "lit": "yes" },
+      "geometry": { "type": "LineString", "coordinates": [[77.2, 28.605], [77.215, 28.605]] }
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "experiment": "ablation-leave-one-out",
+  "model_version": "deterministic-baseline-v1",
+  "evidence_model_version": "evidence-baseline-v1",
+  "now": "2026-08-14T12:00:00+00:00",
+  "run_at": "2026-08-15T04:51:49+00:00",
+  "components": [
+    "incident",
+    "lighting",
+    "facility",
+    "road"
+  ],
+  "scenarios": {
+    "corridor_night": {
+      "risk": 1.0,
+      "confidence": 0.95,
+      "uncertainty": 0.050000000000000044,
+      "reasons": [
+        "Recent incident reports on this segment",
+        "Streetlight failure reported on this segment",
+        "Poor lighting reported on this segment",
+        "Near an emergency facility"
+      ],
+      "marginal_contribution": {
+        "incident": 0.40537668455894316,
+        "lighting": 0.11484308208446703,
+        "facility": 0.0,
+        "road": 0.0
+      },
+      "share_of_risk": {
+        "incident": 0.7792,
+        "lighting": 0.2208,
+        "facility": 0.0,
+        "road": 0.0
+      }
+    },
+    "corridor_day": {
+      "risk": 0.6784755417839489,
+      "confidence": 0.95,
+      "reasons": [
+        "Recent incident reports on this segment",
+        "Streetlight failure reported on this segment",
+        "Poor lighting reported on this segment",
+        "Near an emergency facility"
+      ],
+      "marginal_contribution": {
+        "incident": 0.5405336024744761,
+        "lighting": 0.11261856555022087,
+        "facility": 0.01282337375925191,
+        "road": 0.012499999999999956
+      },
+      "night_over_day_ratio": 1.474
+    },
+    "corridor_night_no_evidence": {
+      "risk": 0.06793655457499011,
+      "confidence": 0.25,
+      "reasons": [
+        "Limited safety data for this segment",
+        "Near an emergency facility",
+        "Higher-risk road type for night walking"
+      ],
+      "marginal_contribution": {
+        "incident": 0.0,
+        "lighting": 0.0,
+        "facility": 0.012823373759251924,
+        "road": 0.037500000000000006
+      }
+    }
+  },
+  "route_stability": {
+    "candidates": [
+      {
+        "candidate": "A_incident_heavy",
+        "risk": 0.8036536071829179,
+        "confidence": 0.9,
+        "reasons": [
+          "Recent incident reports on this segment",
+          "Near an emergency facility",
+          "Higher-risk road type for night walking"
+        ],
+        "marginal_contribution": {
+          "incident": 0.5449755945243909,
+          "lighting": 0.0,
+          "facility": 0.01282337375925191,
+          "road": 0.03749999999999998
+        }
+      },
+      {
+        "candidate": "B_lighting_and_road",
+        "risk": 0.48222800333533006,
+        "confidence": 0.8,
+        "reasons": [
+          "Streetlight failure reported on this segment",
+          "Poor lighting reported on this segment",
+          "Higher-risk road type for night walking"
+        ],
+        "marginal_contribution": {
+          "incident": 0.0,
+          "lighting": 0.25,
+          "facility": 0.06970592839654072,
+          "road": 0.03750000000000003
+        }
+      },
+      {
+        "candidate": "C_facility_protected",
+        "risk": 0.028361697773491033,
+        "confidence": 0.25,
+        "reasons": [
+          "Limited safety data for this segment",
+          "Near an emergency facility",
+          "Higher-risk road type for night walking"
+        ],
+        "marginal_contribution": {
+          "incident": 0.0,
+          "lighting": 0.0,
+          "facility": 0.006008665017400765,
+          "road": 0.015000000000000003
+        }
+      }
+    ],
+    "stability": {
+      "winner_full_risk": 2,
+      "winner_per_ablation": {
+        "incident": 2,
+        "lighting": 2,
+        "facility": 2,
+        "road": 2
+      },
+      "ranking_flips": []
+    }
+  },
+  "note": "Confidence is evidence-volume based; component ablation changes risk only, never confidence. Shares are exact only when no clamping occurs."
+}
