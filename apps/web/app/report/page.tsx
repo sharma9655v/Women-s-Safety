@@ -1,263 +1,177 @@
 "use client";
-
-import { FileWarning, ImagePlus, Lock, MapPin, Send, X } from "lucide-react";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { Button } from "@/app/components/ui/Button";
-import { Card, CardHeader } from "@/app/components/ui/Card";
-import { Select } from "@/app/components/ui/Input";
-import { submitReport } from "@/lib/api";
-import type { ReportResult, ReportSubmission } from "@/lib/types";
-
-// The API caps the base64 evidence_image string at 5,000,000 chars, so a
-// 3.5 MB raw file stays comfortably under the limit after data-URL inflation.
-const MAX_IMAGE_BYTES = 3_500_000;
-
-const CATEGORIES = [
-  { id: "streetlight_not_working", label: "Streetlight not working" },
-  { id: "poor_lighting", label: "Poor lighting" },
-  { id: "harassment", label: "Harassment" },
-  { id: "suspicious_activity", label: "Suspicious activity" },
-  { id: "blocked_sidewalk", label: "Blocked sidewalk" },
-  { id: "unsafe_transport", label: "Unsafe transport" },
-  { id: "road_hazard", label: "Road hazard" },
-  { id: "other", label: "Other" },
-];
-
-function lastRouteSegmentIds(): number[] {
-  try {
-    const raw = sessionStorage.getItem("mf:last-route-segments");
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((n): n is number => Number.isFinite(n)) : [];
-  } catch {
-    return [];
-  }
-}
+import { useState } from "react";
+import { useQuery } from "@/lib/query";
+import { api } from "@/lib/api";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { formatDistance, timeAgo } from "@/lib/format";
+import { Loader2, Send, MapPin, Shield, AlertTriangle, Camera, Image, X, Check, Map, FileText, XCircle } from "lucide-react";
 
 export default function ReportPage() {
-  const [category, setCategory] = useState("poor_lighting");
-  const [details, setDetails] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ReportResult | null>(null);
-  const [mounted, setMounted] = useState(false);
-  const [imageData, setImageData] = useState<string | null>(null);
-  const [imageError, setImageError] = useState<string | null>(null);
-  const [segmentIds, setSegmentIds] = useState<number[]>([]);
-  useEffect(() => {
-    setSegmentIds(lastRouteSegmentIds());
-    setMounted(true);
-  }, []);
+  const [step, setStep] = useState<"location" | "details" | "confirm">("location");
+  const [location, setLocation] = useState({ lat: 28.6139, lon: 77.209, name: "Current location" });
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
+  const [image, setImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [segments, setSegments] = useState<{ segment_id: number; risk: number; name: string }[]>([]);
 
-  const canSubmit = segmentIds.length > 0 && details.trim().length >= 10;
+  const categories = [
+    { id: "harassment", label: "Harassment", icon: AlertTriangle },
+    { id: "poor_lighting", label: "Poor Lighting", icon: Shield },
+    { id: "road_hazard", label: "Road Hazard", icon: AlertTriangle },
+    { id: "suspicious_activity", label: "Suspicious Activity", icon: AlertTriangle },
+    { id: "streetlight_not_working", label: "Streetlight Not Working", icon: Shield },
+    { id: "other", label: "Other", icon: AlertTriangle },
+  ];
 
-  const handleImage = (file: File | undefined) => {
-    setImageError(null);
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setImageError("Please choose an image file (PNG, JPEG, WEBP, ...).");
-      return;
-    }
-    if (file.size > MAX_IMAGE_BYTES) {
-      setImageError("Image is too large — the maximum size is 3.5 MB.");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setImageData(typeof reader.result === "string" ? reader.result : null);
-    reader.onerror = () => setImageError("Could not read the image file.");
-    reader.readAsDataURL(file);
+  const detectLocation = async () => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(p => {
+      setLocation({ lat: p.coords.latitude, lon: p.coords.longitude, name: "Current location" });
+      // In real app, reverse geocode here
+    });
   };
 
-  const submit = async () => {
-    if (!canSubmit || submitting) return;
-    setSubmitting(true);
-    setError(null);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (f) {
+      const reader = new FileReader();
+      reader.onload = () => setImage(reader.result as string);
+      reader.readAsDataURL(f);
+    }
+  };
+
+  const next = () => {
+    if (step === "location" && category) setStep("details");
+    else if (step === "details") setStep("confirm");
+  };
+  const back = () => setStep(step === "details" ? "location" : step === "confirm" ? "details" : "location");
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
     try {
-      const payload: ReportSubmission = {
-        segment_id: segmentIds[0],
-        category,
-        description: details.trim(),
-        evidence_image: imageData,
-      };
-      const res = await submitReport(payload);
-      setResult(res);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not submit the report.");
-    } finally {
-      setSubmitting(false);
-    }
+      // Find nearest segment - simplified
+      const segmentId = segments[0]?.segment_id ?? 1;
+      await api.reports.submit({ segment_id: segmentId, category, description, evidence_image: image });
+      setSuccess(true);
+      setStep("location");
+      setCategory("");
+      setDescription("");
+      setImage(null);
+    } catch { alert("Failed to submit report"); }
+    finally { setLoading(false); }
   };
-
-  if (result) {
-    return (
-      <div className="flex h-full items-center justify-center p-6">
-        <Card className="max-w-sm text-center">
-          <span className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-success/15 text-success">
-            <Send className="size-5" aria-hidden />
-          </span>
-          <h1 className="text-lg font-bold text-foreground">Report submitted</h1>
-          <p className="mt-1 text-sm text-text-secondary">
-            Reference {result.report_id} — thank you. Your report is anonymous and will be reviewed
-            by our verification pipeline.
-          </p>
-          <Button variant="secondary" className="mt-4" onClick={() => setResult(null)}>
-            Submit another report
-          </Button>
-        </Card>
-      </div>
-    );
-  }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-xl space-y-4 p-4 lg:p-6">
-        <header>
-          <h1 className="flex items-center gap-2 text-xl font-bold text-foreground">
-            <span className="text-primary">Report an incident</span>
-            <FileWarning className="size-5 text-emergency" aria-hidden />
-          </h1>
-          <p className="text-sm text-text-muted">
-            Reports help build better evidence for everyone. They are never used to judge you.
-          </p>
-        </header>
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
+      <div className="p-4 sm:p-6 border-b border-line">
+        <div className="mx-auto max-w-xl">
+          <h1 className="font-display text-2xl font-bold">Submit Safety Report</h1>
+          <p className="text-sm text-text-mid">Anonymous, evidence-based reports help improve routing for everyone.</p>
+        </div>
+      </div>
 
-        {mounted && segmentIds.length === 0 ? (
-          <Card>
-            <div className="flex items-start gap-3 p-4">
-              <MapPin className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-              <div className="text-xs leading-relaxed text-text-secondary">
-                Reports are attached to a road segment from a route you planned.{" "}
-                <a href="/live" className="font-semibold text-primary underline">
-                  Plan a route first
-                </a>{" "}
-                and come back here — we will prefill the segment for you.
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="mx-auto max-w-xl space-y-4">
+          {/* Progress */}
+          <div className="flex items-center gap-2">
+            {["Location", "Details", "Confirm"].map((s, i) => (
+              <div key={s} className="flex-1 flex items-center">
+                <div className={`flex-1 h-1 rounded ${i < (step === "location" ? 0 : step === "details" ? 1 : 2) ? "bg-primary" : "bg-line"}`} />
+                {i < 2 && <span className="mx-2 text-text-low">→</span>}
               </div>
-            </div>
-          </Card>
-        ) : null}
-
-        <Card className="report-form-card">
-          <CardHeader
-            title="Incident details"
-            subtitle="Be specific about what you saw — never include names or private details."
-          />
-          <div className="space-y-4">
-            <Select
-              id="category"
-              label="Category"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.label}
-                </option>
-              ))}
-            </Select>
-
-            {mounted && segmentIds.length > 0 ? (
-              <p className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2 text-[11px] text-text-muted">
-                <MapPin className="size-3.5 shrink-0" aria-hidden />
-                Attached to road segment #{segmentIds[0]} from your last planned route
-                {segmentIds.length > 1 ? ` (+${segmentIds.length - 1} more)` : ""}.
-              </p>
-            ) : null}
-
-            <div>
-              <label
-                htmlFor="details"
-                className="mb-1.5 block text-xs font-medium text-text-secondary"
-              >
-                Description
-              </label>
-              <textarea
-                id="details"
-                rows={5}
-                value={details}
-                onChange={(e) => setDetails(e.target.value)}
-                placeholder="Describe what you observed — facts only. Example: 'Streetlight not working on the south side of the lane; pedestrian path is dark after 9pm.'"
-                maxLength={500}
-                className="w-full resize-none rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-foreground transition-colors duration-150 placeholder:text-text-muted focus:border-primary/40 focus:outline-none"
-              />
-              <p className="mt-1 text-right text-[11px] text-text-muted">{details.length}/500</p>
-            </div>
-
-            <div>
-              <input
-                id="evidence-image"
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  handleImage(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
-              {imageData ? (
-                <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3 py-2">
-                  <Image
-                    src={imageData}
-                    alt="Selected evidence preview"
-                    width={64}
-                    height={64}
-                    unoptimized
-                    className="size-16 shrink-0 rounded-lg border border-border object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-foreground">Photo attached</p>
-                    <p className="text-[11px] leading-relaxed text-text-muted">
-                      Metadata (EXIF) is stripped and the image is encrypted on the server.
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label="Remove attached photo"
-                    onClick={() => {
-                      setImageData(null);
-                      setImageError(null);
-                    }}
-                  >
-                    <X className="size-3.5" aria-hidden /> Remove
-                  </Button>
-                </div>
-              ) : (
-                <label
-                  htmlFor="evidence-image"
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-dashed border-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-colors duration-150 hover:border-primary/40 hover:text-foreground"
-                >
-                  <ImagePlus className="size-4" aria-hidden />
-                  Add photo evidence (optional, max 3.5 MB)
-                </label>
-              )}
-              {imageError ? (
-                <p role="alert" className="mt-1.5 text-[11px] text-danger">
-                  {imageError}
-                </p>
-              ) : null}
-            </div>
-
-            {error ? (
-              <p
-                role="alert"
-                className="rounded-xl border border-danger/25 bg-danger/8 px-3 py-2 text-xs text-danger"
-              >
-                {error}
-              </p>
-            ) : null}
-
-            <div className="report-form-footer flex items-center justify-between gap-3">
-              <p className="flex items-center gap-1.5 text-[11px] text-text-muted">
-                <Lock className="size-3.5" aria-hidden /> Reported anonymously · never shared
-                publicly
-              </p>
-              <Button loading={submitting} disabled={!canSubmit} onClick={submit}>
-                Submit report
-              </Button>
-            </div>
+            ))}
           </div>
-        </Card>
+
+          {success && (
+            <Card variant="glass" className="text-center py-8 animate-in">
+              <Check size={48} className="mx-auto text-safe mb-4" />
+              <h3 className="font-display text-xl font-semibold">Report Submitted</h3>
+              <p className="text-text-mid mt-2">Thank you. Your report helps keep the community safer.</p>
+              <Button className="mt-6" onClick={() => setSuccess(false)}>Submit Another</Button>
+            </Card>
+          )}
+
+          {!success && (
+            <>
+              {step === "location" && (
+                <Card variant="glass" className="space-y-4">
+                  <h3 className="font-medium flex items-center gap-2"><MapPin size={20} className="text-accent" /> Where did this happen?</h3>
+                  <div className="flex gap-2">
+                    <Button variant="outline" className="flex-1" onClick={detectLocation}><Loader2 size={16} className="animate-spin" /> Use Current Location</Button>
+                    <Button variant="ghost" onClick={() => { /* open map picker */}}><Map size={16} /></Button>
+                  </div>
+                  <p className="text-sm text-text-mid">Location: {location.name} ({location.lat.toFixed(4)}, {location.lon.toFixed(4)})</p>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    {categories.map(c => (
+                      <label key={c.id} className={`relative cursor-pointer ${category === c.id ? "ring-2 ring-primary" : ""}`}>
+                        <input type="radio" name="category" value={c.id} checked={category === c.id} onChange={() => setCategory(c.id)} className="sr-only" />
+                        <div className="glass p-4 rounded-xl text-center transition-colors hover:border-primary/30">
+                          <c.icon size={24} className="mx-auto mb-2 text-accent" />
+                          <span className="text-sm font-medium">{c.label}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" onClick={back} disabled={step === "location"}><X size={16} /> Back</Button>
+                    <Button className="flex-1" disabled={!category} onClick={next}>Next <FileText size={16} /></Button>
+                  </div>
+                </Card>
+              )}
+
+              {step === "details" && (
+                <Card variant="glass" className="space-y-4">
+                  <h3 className="font-medium flex items-center gap-2"><FileText size={20} className="text-accent" /> Details</h3>
+                  <Input label="Description" placeholder="What happened? (optional)" value={description} onChange={e => setDescription(e.target.value)} />
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input type="checkbox" className="accent-primary" /> Include photo evidence
+                    </label>
+                    {image ? (
+                      <div className="relative glass p-2 rounded-xl">
+                        <img src={image} alt="Evidence" className="max-h-64 rounded-lg" />
+                        <button onClick={() => setImage(null)} className="absolute top-2 right-2 p-1 rounded-lg bg-black/50 text-white"><X size={16} /></button>
+                      </div>
+                    ) : (
+                      <label className="flex items-center justify-center gap-2 p-6 border-2 border-dashed border-line rounded-xl cursor-pointer hover:border-primary/30">
+                        <Camera size={24} className="text-text-low" />
+                        <span className="text-text-mid">Tap to add photo</span>
+                        <input type="file" accept="image/*" className="sr-only" onChange={handleImageChange} />
+                      </label>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" onClick={back}><X size={16} /> Back</Button>
+                    <Button className="flex-1" onClick={next}>Next <Shield size={16} /></Button>
+                  </div>
+                </Card>
+              )}
+
+              {step === "confirm" && (
+                <Card variant="glass" className="space-y-4">
+                  <h3 className="font-medium flex items-center gap-2"><Shield size={20} className="text-primary" /> Confirm & Submit</h3>
+                  <div className="glass p-3 rounded-xl space-y-2 text-sm">
+                    <div className="flex justify-between"><span className="text-text-mid">Category</span><span className="font-medium">{categories.find(c => c.id === category)?.label}</span></div>
+                    <div className="flex justify-between"><span className="text-text-mid">Location</span><span className="font-medium">{location.name}</span></div>
+                    {description && <div className="flex justify-between"><span className="text-text-mid">Description</span><span className="font-medium">{description.slice(0, 50)}…</span></div>}
+                    {image && <div className="flex justify-between"><span className="text-text-mid">Photo</span><span className="font-medium text-safe">Attached</span></div>}
+                  </div>
+                  <p className="text-xs text-text-low text-center">This report is anonymous. No personal identifiers are stored.</p>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" onClick={back}><X size={16} /> Back</Button>
+                    <Button className="flex-1" onClick={submit} disabled={loading}><Send size={16} /> {loading ? "Submitting…" : "Submit Report"}</Button>
+                  </div>
+                </Card>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

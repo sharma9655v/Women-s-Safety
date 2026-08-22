@@ -1,77 +1,37 @@
-"use client";
-
+import { useState, useRef, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
-import { type ReactNode, useEffect, useRef, useState } from "react";
-
-interface DropdownOption {
-  id: string;
-  label: string;
-  hint?: string;
-}
 
 export function Dropdown({
-  value,
-  options,
-  onChange,
-  ariaLabel,
   trigger,
+  items,
+  align = "end",
 }: {
-  value: string;
-  options: DropdownOption[];
-  onChange: (id: string) => void;
-  ariaLabel: string;
-  trigger?: ReactNode;
+  trigger: React.ReactNode;
+  items: { label: string; onClick: () => void; icon?: React.ReactNode; danger?: boolean }[];
+  align?: "start" | "end";
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  }, []);
 
   return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        aria-label={ariaLabel}
-        aria-expanded={open}
-        className="flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-foreground transition-colors duration-150 hover:bg-surface-hover"
-      >
-        {trigger ?? <span>{options.find((o) => o.id === value)?.label ?? value}</span>}
-        <ChevronDown
-          className={`size-3.5 text-text-muted transition-transform duration-200 ${open ? "rotate-180" : ""}`}
-          aria-hidden
-        />
-      </button>
-      {open ? (
-        <ul className="glass-strong absolute top-full left-0 z-50 mt-1 min-w-[180px] overflow-hidden rounded-xl py-1 shadow-2xl">
-          {options.map((opt) => (
-            <li key={opt.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  onChange(opt.id);
-                  setOpen(false);
-                }}
-                className={`flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm transition-colors duration-100 hover:bg-surface-hover ${
-                  opt.id === value ? "text-primary font-medium" : "text-foreground"
-                }`}
-              >
-                <span className="flex-1">{opt.label}</span>
-                {opt.hint ? <span className="text-xs text-text-muted">{opt.hint}</span> : null}
-              </button>
-            </li>
+    <div ref={ref} className="relative inline-block">
+      <div onClick={() => setOpen(!open)} className="flex items-center gap-1">{trigger} <ChevronDown size={16} className={open ? "rotate-180" : ""} /></div>
+      {open && (
+        <div className={`absolute z-20 mt-2 min-w-[180px] glass-strong rounded-xl py-1.5 shadow-glass-lg ${align === "end" ? "right-0" : "left-0"}`}>
+          {items.map((item, i) => (
+            <button key={i} onClick={() => { item.onClick(); setOpen(false); }} className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-text-hi hover:bg-white/5 ${item.danger ? "text-danger" : ""}`}>
+              {item.icon && <span className="shrink-0">{item.icon}</span>}
+              {item.label}
+            </button>
           ))}
-        </ul>
-      ) : null}
+        </div>
+      )}
     </div>
   );
 }

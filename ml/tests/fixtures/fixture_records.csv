@@ -1,0 +1,7 @@
+record_id,category,date,time,latitude,longitude,state,city,verification_state
+F-001,harassment,2023-03-14,21:30:00,28.6315,77.2167,Delhi,New Delhi,CLOSED
+F-002,Harassment (Eve-teasing),15/03/2023,,28.6315,77.2167,delhi,New Delhi,PENDING
+F-003,stalking,2023-04-01T18:05:00,,,,Karnataka,Bengaluru,
+F-004,unknown_offense,not-a-date,25:99:00,999.0,77.2,Maharashtra,Mumbai,REPORTED
+F-005,poor_lighting,2023-06-10,,,28.55,77.10,Delhi,Dwarka,VERIFIED
+F-001,harassment,2023-03-14,21:30:00,28.6315,77.2167,Delhi,New Delhi,CLOSED

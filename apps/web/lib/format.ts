@@ -25,48 +25,31 @@ export function timeAgo(iso: string): string {
 
 export function freshnessFromAge(ageHours: number | null): DataFreshness {
   if (ageHours === null) {
-    return {
-      tier: "unknown",
-      label: "Unknown",
-      updated_at: null,
-      detail: "No recent evidence",
-    };
+    return { tier: "unknown", label: "Unknown", updated_at: null, detail: "No recent evidence" };
   }
   if (ageHours <= 24) {
-    return {
-      tier: "fresh",
-      label: "Fresh",
-      updated_at: new Date(Date.now() - ageHours * 3600_000).toISOString(),
-      detail: "Updated recently",
-    };
+    return { tier: "fresh", label: "Fresh", updated_at: new Date(Date.now() - ageHours * 3600_000).toISOString(), detail: "Updated recently" };
   }
   if (ageHours <= 24 * 7) {
-    return {
-      tier: "aging",
-      label: "Aging",
-      updated_at: new Date(Date.now() - ageHours * 3600_000).toISOString(),
-      detail: "Updated a few days ago",
-    };
+    return { tier: "aging", label: "Aging", updated_at: new Date(Date.now() - ageHours * 3600_000).toISOString(), detail: "Updated a few days ago" };
   }
-  if (ageHours <= 24 * 120) {
-    return {
-      tier: "stale",
-      label: "Stale",
-      updated_at: new Date(Date.now() - ageHours * 3600_000).toISOString(),
-      detail: "Updated months ago",
-    };
-  }
-  return {
-    tier: "stale",
-    label: "Stale",
-    updated_at: new Date(Date.now() - ageHours * 3600_000).toISOString(),
-    detail: "Updated months ago",
-  };
+  return { tier: "stale", label: "Stale", updated_at: new Date(Date.now() - ageHours * 3600_000).toISOString(), detail: "Updated months ago" };
 }
 
-export const FRESHNESS_TIER_STYLE: Record<FreshnessTier, string> = {
-  fresh: "text-success bg-success/10 border-success/25",
-  aging: "text-warning bg-warning/10 border-warning/25",
-  stale: "text-danger bg-danger/10 border-danger/25",
-  unknown: "text-text-muted bg-white/5 border-border",
+export const FRESHNESS_STYLE: Record<FreshnessTier, string> = {
+  fresh: "text-safe bg-safe/10 border-safe/20",
+  aging: "text-warn bg-warn/10 border-warn/20",
+  stale: "text-danger bg-danger/10 border-danger/20",
+  unknown: "text-text-low bg-white/5 border-line",
 };
+
+export function riskBandLabel(band: import("./types").SafetyBand): string {
+  return band === "high" ? "High" : band === "moderate" ? "Moderate" : band === "low" ? "Low" : "Limited";
+}
+
+export function riskBandStyle(band: import("./types").SafetyBand): string {
+  return band === "high" ? "text-risk-low"
+    : band === "moderate" ? "text-risk-moderate"
+    : band === "low" ? "text-risk-elevated"
+    : "text-risk-limited";
+}

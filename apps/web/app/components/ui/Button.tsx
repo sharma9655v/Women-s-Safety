@@ -1,56 +1,35 @@
-"use client";
+import { ButtonHTMLAttributes, forwardRef } from "react";
 
-import { Loader2 } from "lucide-react";
-import type { ButtonHTMLAttributes, ReactNode } from "react";
-
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "success" | "outline";
-type Size = "sm" | "md" | "lg";
-
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  size?: Size;
-  loading?: boolean;
-  fullWidth?: boolean;
-  children: ReactNode;
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "safe" | "outline" | "success";
+  size?: "sm" | "md" | "lg" | "icon";
+  danger?: boolean;
 }
 
-const VARIANT_CLASSES: Record<Variant, string> = {
-  primary:
-    "bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary-hover hover:shadow-primary/30",
-  secondary:
-    "bg-surface text-foreground border border-border hover:bg-surface-hover hover:border-border-glow",
-  ghost: "bg-transparent text-text-secondary hover:bg-surface-hover hover:text-foreground",
-  danger: "bg-emergency text-white shadow-lg shadow-emergency/20 hover:bg-emergency/90",
-  success: "bg-success/15 text-success border border-success/25 hover:bg-success/25",
-  outline:
-    "bg-transparent text-foreground border border-primary/30 hover:border-primary hover:bg-primary/5",
-};
-
-const SIZE_CLASSES: Record<Size, string> = {
-  sm: "min-h-10 px-3 text-xs gap-1.5 rounded-lg",
-  md: "min-h-11 px-4 text-sm gap-2 rounded-xl",
-  lg: "h-12 px-6 text-base gap-2.5 rounded-xl",
-};
-
-export function Button({
-  variant = "primary",
-  size = "md",
-  loading = false,
-  fullWidth = false,
-  disabled,
-  className = "",
-  children,
-  ...rest
-}: ButtonProps) {
-  return (
-    <button
-      type="button"
-      disabled={disabled || loading}
-      className={`inline-flex cursor-pointer items-center justify-center font-medium transition-all duration-200 select-none active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 ${VARIANT_CLASSES[variant]} ${SIZE_CLASSES[size]} ${fullWidth ? "w-full" : ""} ${className}`}
-      {...rest}
-    >
-      {loading ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
-      {children}
-    </button>
-  );
-}
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className = "", children, disabled, variant = "primary", size = "md", danger = false, ...props }, ref) => {
+    const base = "inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-50 disabled:pointer-events-none";
+    const variants = {
+      primary: "bg-primary text-bg hover:bg-primary-hover shadow-primary-glow",
+      secondary: "bg-surface-elevated text-text-hi hover:bg-surface-elevated/80 border border-line",
+      ghost: "text-text-mid hover:text-text-hi hover:bg-white/5",
+      danger: "bg-emergency text-bg hover:bg-danger shadow-emergency-glow",
+      safe: "bg-safe text-bg hover:bg-safe/90 shadow-safe-glow",
+      outline: "border border-line text-text-hi hover:bg-white/5",
+      success: "bg-safe text-bg hover:bg-safe/90 shadow-safe-glow",
+    };
+    const sizes = {
+      sm: "px-3 py-1.5 text-sm gap-1.5 rounded-lg",
+      md: "px-4 py-2 text-base gap-2 rounded-xl",
+      lg: "px-6 py-3 text-lg gap-2.5 rounded-xl",
+      icon: "p-2 rounded-xl",
+    };
+    const variantClass = danger ? variants.danger : variants[variant];
+    return (
+      <button ref={ref} className={`${base} ${variantClass} ${sizes[size]} ${className}`} disabled={disabled} {...props}>
+        {children}
+      </button>
+    );
+  },
+);
+Button.displayName = "Button";

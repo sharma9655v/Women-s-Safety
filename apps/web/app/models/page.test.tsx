@@ -1,14 +1,21 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CVHealth, CVListResponse, ModelsCurrent } from "@/lib/types";
 import ModelsPage from "./page";
+import { api } from "@/lib/api";
 
-vi.mock("@/lib/api", () => ({
-  fetchModelsCurrent: vi.fn(),
-  fetchCvHealth: vi.fn(),
-  fetchCvModels: vi.fn(),
-  predictCv: vi.fn(),
-}));
+const fetchMock = vi.fn<typeof fetch>();
+
+beforeEach(() => {
+  fetchMock.mockReset();
+  localStorage.clear();
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 vi.mock("lucide-react", () => {
   const react = require("react");
@@ -16,6 +23,22 @@ vi.mock("lucide-react", () => {
     react.createElement("span", { ...props, "data-testid": "icon" });
   const icons: Record<string, typeof Icon> = {};
   for (const name of [
+    "Shield",
+    "Cpu",
+    "Database",
+    "Loader2",
+    "CheckCircle",
+    "XCircle",
+    "AlertTriangle",
+    "FileText",
+    "Download",
+    "ExternalLink",
+    "GitBranch",
+    "Globe",
+    "Eye",
+    "BarChart2",
+    "Brain",
+    "Zap",
     "BrainCircuit",
     "Cpu",
     "FileImage",
@@ -28,8 +51,6 @@ vi.mock("lucide-react", () => {
   }
   return icons;
 });
-
-import { fetchCvHealth, fetchCvModels, fetchModelsCurrent } from "@/lib/api";
 
 const MODELS: ModelsCurrent = {
   risk_model: "rules-v1 (deterministic)",
@@ -74,30 +95,179 @@ const REGISTRY: CVListResponse = {
   is_real_inference: false,
 };
 
-beforeEach(() => {
-  vi.mocked(fetchModelsCurrent).mockResolvedValue(MODELS);
-  vi.mocked(fetchCvHealth).mockResolvedValue(HEALTH);
-  vi.mocked(fetchCvModels).mockResolvedValue(REGISTRY);
-});
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function renderWithData() {
+  fetchMock
+    .mockResolvedValueOnce(jsonResponse(MODELS))
+    .mockResolvedValueOnce(jsonResponse(HEALTH))
+    .mockResolvedValueOnce(jsonResponse(REGISTRY));
+
+  render(<ModelsPage />);
+
+  await waitFor(() => {
+    expect(screen.getByText("ML Gate Status")).toBeTruthy();
+  });
+}
 
 describe("ModelsPage", () => {
-  it("shows the closed validation gate with real thresholds", async () => {
-    render(<ModelsPage />);
-    expect(await screen.findByText("Gate closed — ML not used in routing")).toBeTruthy();
-    expect(screen.getByText("42")).toBeTruthy();
-    expect(screen.getByText("/ 1000")).toBeTruthy();
+  beforeEach(() => {
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(MODELS))
+      .mockResolvedValueOnce(jsonResponse(HEALTH))
+      .mockResolvedValueOnce(jsonResponse(REGISTRY));
   });
 
-  it("labels the demo backend honestly instead of claiming real inference", async () => {
-    render(<ModelsPage />);
-    expect(await screen.findByText("Demo (no real model)")).toBeTruthy();
-    expect(screen.queryByText("Real inference")).toBeNull();
+  describe("ML Gate Status", () => {
+    it("shows ML Gate Status section", async () => {
+      await renderWithData();
+      expect(screen.getByText("ML Gate Status")).toBeTruthy();
+    });
+
+    it("shows gate status as CLOSED when open is false", async () => {
+      await renderWithData();
+      expect(screen.getByText("CLOSED")).toBeTruthy();
+    });
+
+    it("shows verified observations count", async () => {
+      await renderWithData();
+      expect(screen.getByText("42")).toBeTruthy();
+      expect(screen.getByText("Verified Obs.")).toBeTruthy();
+    });
+
+    it("shows span days", async () => {
+      await renderWithData();
+      expect(screen.getByText("12")).toBeTruthy();
+      expect(screen.getByText("Span (days)")).toBeTruthy();
+    });
+
+    it("shows min required observations", async () => {
+      await renderWithData();
+      expect(screen.getByText("1000")).toBeTruthy();
+      expect(screen.getByText("Min Required")).toBeTruthy();
+    });
+
+    it("shows min span days", async () => {
+      await renderWithData();
+      expect(screen.getByText(/Min span:\s*90/i)).toBeTruthy();
+    });
   });
 
-  it("shows the validation-in-progress notice for unvalidated checkpoints", async () => {
-    render(<ModelsPage />);
-    expect(await screen.findByText(/Model validation in progress/)).toBeTruthy();
-    expect(screen.getByText("Validation required")).toBeTruthy();
-    expect(screen.getByText(/not approved for any production use/)).toBeTruthy();
+  describe("Active Models", () => {
+    it("shows Active Models section", async () => {
+      await renderWithData();
+      expect(screen.getByText("Active Models")).toBeTruthy();
+    });
+
+    it("shows Risk Model card", async () => {
+      await renderWithData();
+      expect(screen.getByText("Risk Model")).toBeTruthy();
+      const versionElements = screen.getAllByText("rules-v1 (deterministic)");
+      expect(versionElements.length).toBeGreaterThan(0);
+      expect(screen.getByText("Risk scoring")).toBeTruthy();
+    });
+
+    it("shows Evidence Model card", async () => {
+      await renderWithData();
+      expect(screen.getByText("Evidence Model")).toBeTruthy();
+      const versionElements = screen.getAllByText("evidence-fusion-v1");
+      expect(versionElements.length).toBeGreaterThan(0);
+      expect(screen.getByText("Evidence fusion")).toBeTruthy();
+    });
+
+    it("shows dataset versions as badges", async () => {
+      await renderWithData();
+      expect(screen.getByText("osm-evidence-2026-07")).toBeTruthy();
+    });
+  });
+
+  describe("Transparency & Reproducibility Section", () => {
+    it("shows Transparency & Reproducibility section", async () => {
+      await renderWithData();
+      expect(screen.getByText("Transparency & Reproducibility")).toBeTruthy();
+    });
+
+    it("shows ML Gate criteria", async () => {
+      await renderWithData();
+      expect(screen.getByText(/ML Gate criteria public: min/i)).toBeTruthy();
+    });
+
+    it("shows Risk model version", async () => {
+      await renderWithData();
+      expect(screen.getByText("Risk model version:")).toBeTruthy();
+    });
+
+    it("shows Evidence model version", async () => {
+      await renderWithData();
+      expect(screen.getByText("Evidence model version:")).toBeTruthy();
+    });
+
+    it("shows CV models section", async () => {
+      await renderWithData();
+      expect(screen.getByText(/CV models only deployed after/i)).toBeTruthy();
+    });
+
+    it("shows Dataset versions tracked", async () => {
+      await renderWithData();
+      expect(screen.getByText(/Dataset versions tracked:/i)).toBeTruthy();
+    });
+
+    it("shows View Full Registry button", async () => {
+      await renderWithData();
+      expect(screen.getByRole("button", { name: /View Full Registry/i })).toBeTruthy();
+    });
+
+    it("shows Source on GitHub button", async () => {
+      await renderWithData();
+      expect(screen.getByRole("button", { name: /Source on GitHub/i })).toBeTruthy();
+    });
+  });
+
+  describe("CV Models & Data Sources Tabs", () => {
+    it("shows CV Models tab button", async () => {
+      await renderWithData();
+      expect(screen.getByText("CV Models")).toBeTruthy();
+    });
+
+    it("shows Data Sources tab button", async () => {
+      await renderWithData();
+      expect(screen.getByText("Data Sources")).toBeTruthy();
+    });
+
+    it("renders CV Models tab content when CV Models tab is active", async () => {
+      await renderWithData();
+      await waitFor(() => {
+        expect(screen.getByText("Computer Vision Models")).toBeTruthy();
+      });
+      await waitFor(() => {
+        const nameElements = screen.getAllByText(/streetlight-classifier/i);
+        expect(nameElements.length).toBeGreaterThan(0);
+        expect(screen.getByText("VALIDATION_REQUIRED")).toBeTruthy();
+        expect(screen.getByText(/Checkpoint:/i)).toBeTruthy();
+        expect(screen.getByText("cv_classifier")).toBeTruthy();
+        expect(screen.getByText("tflite")).toBeTruthy();
+      });
+    });
+
+    it("renders Data Sources tab content when Data Sources tab is clicked", async () => {
+      const user = userEvent.setup();
+      await renderWithData();
+
+      const sourcesTab = screen.getByText("Data Sources");
+      await user.click(sourcesTab);
+
+      await waitFor(() => {
+        expect(screen.getByText("Data Sources & Provenance")).toBeTruthy();
+        expect(screen.getByText("OpenStreetMap")).toBeTruthy();
+        expect(screen.getByText("Community Reports")).toBeTruthy();
+        expect(screen.getByText("Lighting Survey")).toBeTruthy();
+        expect(screen.getByText("Traffic Cameras")).toBeTruthy();
+      });
+    });
   });
 });

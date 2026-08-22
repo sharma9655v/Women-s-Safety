@@ -1,41 +1,20 @@
 "use client";
+import { ReactNode, useState } from "react";
 
-import type { ReactNode } from "react";
-
-interface TabItem {
-  id: string;
-  label: string;
-  icon?: ReactNode;
-}
-
-export function Tabs({
-  items,
-  active,
-  onChange,
-  className = "",
-}: {
-  items: TabItem[];
-  active: string;
-  onChange: (id: string) => void;
-  className?: string;
-}) {
+export function Tabs({ defaultValue, items, render, children, className = "", onChange }: { defaultValue: string; items: { value: string; label: string }[]; render?: (value: string) => ReactNode; children?: ReactNode | ((value: string) => ReactNode); className?: string; onChange?: (v: string) => void }) {
+  const [value, setValue] = useState(defaultValue);
+  const handleChange = (v: string) => { setValue(v); onChange?.(v); };
+  const content = typeof children === "function" ? children(value) : render?.(value) ?? (typeof children === "object" ? children : null);
   return (
-    <div className={`flex gap-1 rounded-xl border border-border bg-surface p-1 ${className}`}>
-      {items.map((item) => (
-        <button
-          key={item.id}
-          type="button"
-          onClick={() => onChange(item.id)}
-          className={`flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200 select-none ${
-            active === item.id
-              ? "bg-primary text-white shadow-sm"
-              : "text-text-muted hover:bg-surface-hover hover:text-foreground"
-          }`}
-        >
-          {item.icon}
-          {item.label}
-        </button>
-      ))}
+    <div className={className}>
+      <div className="flex gap-1 bg-surface-elevated/50 p-1 rounded-xl border border-line">
+        {items.map((item) => (
+          <button key={item.value} onClick={() => handleChange(item.value)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${value === item.value ? "bg-primary text-bg shadow-primary-glow" : "text-text-mid hover:text-text-hi hover:bg-white/5"}`}>
+            {item.label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 animate-in">{content}</div>
     </div>
   );
 }

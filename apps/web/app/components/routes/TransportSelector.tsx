@@ -1,41 +1,18 @@
 "use client";
+import { Footprints, Bike, Car, Bus } from "lucide-react";
 
-import { Bike, Car, Footprints, Train } from "lucide-react";
-
-const MODES = [
-  { id: "walking", icon: <Footprints className="size-4" />, label: "Walk" },
-  { id: "car", icon: <Car className="size-4" />, label: "Car" },
-  { id: "transit", icon: <Train className="size-4" />, label: "Transit" },
-  { id: "bicycle", icon: <Bike className="size-4" />, label: "Cycle" },
-];
-
-export function TransportSelector({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (mode: string) => void;
-}) {
+export function TransportSelector({ value, onChange }: { value: "walking" | "cycling" | "driving"; onChange: (v: "walking" | "cycling" | "driving") => void }) {
+  const options = [
+    { v: "walking", label: "Walk", icon: Footprints },
+    { v: "cycling", label: "Cycle", icon: Bike },
+    { v: "driving", label: "Drive", icon: Car },
+  ] as const;
   return (
-    <div
-      role="radiogroup"
-      aria-label="Transport mode"
-      className="flex gap-1 rounded-xl border border-border bg-surface p-1"
-    >
-      {MODES.map((mode) => (
-        <button
-          key={mode.id}
-          type="button"
-          onClick={() => onChange(mode.id)}
-          className={`flex min-h-11 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium transition-all duration-200 select-none ${
-            value === mode.id
-              ? "bg-primary text-white shadow-sm"
-              : "text-text-muted hover:bg-surface-hover hover:text-foreground"
-          }`}
-          aria-pressed={value === mode.id}
-        >
-          {mode.icon}
-          <span className="hidden sm:inline">{mode.label}</span>
+    <div className="flex gap-2" role="radiogroup" aria-label="Transport mode">
+      {options.map(({ v, label, icon: Icon }) => (
+        <button key={v} onClick={() => onChange(v)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${value === v ? "bg-primary text-bg shadow-primary-glow" : "bg-surface-elevated/50 text-text-mid hover:text-text-hi hover:bg-white/5"}`}>
+          <Icon size={16} />
+          {label}
         </button>
       ))}
     </div>

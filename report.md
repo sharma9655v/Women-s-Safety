@@ -1,7 +1,7 @@
 # Women's Safety Navigation Platform — Final Codebase Report
 
 **Project:** Map for Women — AI-Assisted Women's Safety Navigation
-**Report date:** 19 August 2026
+**Report date:** 19 August 2026 (Addendum 22 August 2026 — Automated Dataset Pipeline, see §14)
 **Scope:** Complete repository audit and verification — backend, frontend, ML workspace, research harness, data/GIS pipeline, Android, infrastructure, CI/CD, and test suites.
 **Verification basis:** Fresh test runs, typecheck, lint, production build, and a live full-stack smoke test against the running API and web application, all performed during this report.
 
@@ -19,9 +19,9 @@ The repository is a serious engineering and research project with a core princip
 | --- | --- | --- |
 | Backend unit/integration tests | `apps/api/tests` (27 modules) | **266 passed** |
 | Frontend component/unit tests | `apps/web` (vitest, 8 suites) | **48 passed** |
-| ML workspace tests | `ml/tests` | **18 passed** |
+| ML workspace tests | `ml/tests` | **55 passed** (18 core + 37 dataset-pipeline) |
 | Research harness tests | `research/tests` | **21 passed** |
-| **Total automated tests** | | **353 passed** |
+| **Total automated tests** | | **390 passed** |
 | Frontend typecheck | `tsc --noEmit` | Clean |
 | Frontend lint | Biome (`biome lint`) | 0 errors, 0 warnings |
 | Frontend production build | Next.js 16.3.0 (Turbopack) | Success — 16 routes |
@@ -158,7 +158,8 @@ biome lint:     0 errors, 0 warnings       next build:  16 routes, success
 - **Gate is closed by design.** Training is refused until ≥ 1,000 `VERIFIED` observations span ≥ 90 days; demo-seeded observations never count; there is no bypass flag. Recorded gate report (2026-08-15): `verified_observations: 0`, `open: false`.
 - `ml/train.py` refuses to run while the gate is closed (exit code 3). `ml/dataset.py` produces immutable timestamped CSV snapshots; `ml/eval.py` implements Brier, ROC-AUC, PR-AUC, ECE, F1 in pure stdlib; `ml/model_registry.py` defines the `models/registry.json` conventions.
 - Two trained CV checkpoints ship under `models/` (Git LFS): `Base_model.h5` (VGG16 + SE attention, 20-class multi-label classifier) and `Faster_RCNN_model.hdf5` (RPN + ROI detector, 4 classes). Both are registered as `VALIDATION_REQUIRED`, have no recorded metrics or training provenance in the repository, and are **not referenced by any application code**. The CV mock backend (`/api/cv/*`) honestly reports `is_real_inference=false`.
-- Tests: **18 passed**.
+- **Automated dataset pipeline (`ml/ml/data/`) — added in the 2026-08-22 addendum (§14):** source registry → cached ingestion → normalization → validation → deterministic deduplication → optional geocoding → H3 privacy generalization → feature engineering with temporal splits → quality reports → versioned manifests with per-record lineage → CSV/Parquet/JSONL exports. All safety rules from §14 are enforced in code and unit-tested.
+- Tests: **55 passed** (18 core gate/eval/registry + 37 dataset-pipeline tests with synthetic fixtures that are never used as training data).
 
 ---
 
@@ -238,3 +239,72 @@ The single most important architectural safeguard — that the system never clai
 1. Start the Docker stack (postgis + redis + osrm) and run the live OSRM round-trip for `/api/routes` plus the Playwright E2E suites against it.
 2. Compile and test the Android app in Android Studio.
 3. Feed validated civic/NGO data through `app.ingest_feed` to open the ML training gate (≥ 1,000 VERIFIED observations over ≥ 90 days).
+
+---
+
+## 14. Addendum (22 August 2026) — Automated Dataset Pipeline
+
+### 14.1 What was built
+
+A reproducible, privacy-preserving dataset-generation pipeline for the gated ML component, located at `ml/ml/data/` and invoked via `python -m ml.data.build_dataset` / `python -m ml.data.update`. Design constraint, enforced throughout: **never fabricate crime incidents, coordinates, labels, or metrics** — the pipeline can only transform approved external sources.
+
+```text
+SOURCE → DOWNLOAD/CACHE → NORMALIZE → VALIDATE → DEDUPLICATE
+       → GEOCODE (where legitimate) → SPATIAL AGGREGATION
+       → FEATURES → QUALITY CHECK → VERSION → EXPORT
+```
+
+| Module | Responsibility |
+| --- | --- |
+| `config/schema.py` | Canonical record schema (26 fields), enums (`SourceType`, `CrimeCategory`, `VerificationState`, `GeocodingMethod`), explicit per-source category mappings with `original_category` traceability |
+| `config/sources.yaml` | Source registry — every source carries publisher, license, coverage, update frequency, allowed usage, reliability; all templates ship **disabled** pending human approval |
+| `sources/` | Adapters: government CSV (NCRB-style), OSM GeoJSON, research CSV/JSON with auto-detection; unknown-license sources refuse to ingest |
+| `ingestion/` | HTTP download with ETag/Last-Modified/SHA256 caching, retry/backoff, rate limiting; raw files never modified |
+| `normalization/` | Raw rows → canonical schema: multi-format date parsing, category mapping, state-name normalization, coordinate bounds checks, quality scoring; missing dates are left empty (validation rejects) rather than defaulted to collection time |
+| `validation/` | Schema/rule validation with aggregate report + deterministic deduplication: same-source record IDs merge (best quality kept); cross-source records never merge (corroboration ≠ duplicate); decisions traceable to inputs |
+| `geocoding/` | Rate-limited Nominatim/Photon clients for legitimately public locations only |
+| `spatial/` | H3 cell assignment, privacy generalization (sensitive categories → cell centroids), neighbor features |
+| `features/` | Temporal features (hour only when the source provides it — unknown stays unknown), spatial densities, leakage-safe temporal train/validation/test split |
+| `quality/` | `data_quality_score` (provenance completeness — explicitly *not* a risk score) + JSON/HTML quality reports |
+| `versioning/` | Collision-safe immutable versions, order-independent content hash, source checksums, per-record JSONL lineage, `dataset_manifest.json` |
+| `exports/` | `processed.csv/.parquet/.jsonl` + `features.parquet`; PII-free by schema construction |
+
+### 14.2 Safety rules verified by tests
+
+Every rule below has a dedicated unit test (`ml/tests/test_data_pipeline.py`, synthetic fixtures clearly labeled as test-only and referenced nowhere by the build):
+
+- Only enabled/approved registry sources are ingested; unknown parsers fail loudly.
+- Unknown license ⇒ ingestion refused (hard stop).
+- `source_type=demo_seed` records are excluded before validation and can never reach ML data.
+- Impossible coordinates rejected; invalid dates rejected (never fabricated).
+- Sensitive-category coordinates generalize to H3 centroids; non-sensitive stay exact.
+- No PII field exists in the canonical schema.
+- Deduplication merges same-source duplicates deterministically, never across sources.
+- Dataset hash is order-independent; concurrent-same-second builds get distinct versions (no overwrite).
+- Temporal split is strictly chronological (no leakage).
+- Exports round-trip and contain no free-text descriptions.
+
+### 14.3 Pipeline status — honest final report
+
+| Item | Status |
+| --- | --- |
+| Sources discovered | 4 categories scaffolded as disabled templates (government/NCRB, municipal, OSM, research) |
+| Sources approved | **0** — each requires human verification of URL, license, terms, robots.txt |
+| Sources ingested | **0 records** — build exits `status: no_sources` (exit 1) rather than producing an empty/fabricated dataset |
+| Geographic/temporal coverage | None — computed from real ingested records only |
+| Record counts | All zero; counting machinery tested against fixtures |
+| Dataset version issued | None — versioning system implemented and tested but unexercised on real data |
+| Output files | Generators complete and round-trip tested |
+| Quality report location | Written next to exports on real runs (`quality_report_<version>.json/.html`) |
+| Lineage mechanism | Per-record JSONL + manifest with source checksums and dataset hash |
+| Tests passed | 37 pipeline tests; ML suite total 55; repository total **390** |
+| Known limitations | Geocoding unexercised on real queries; environmental features (police/hospital/transit/streetlight distances) are placeholders until facility data loads from PostGIS; target generation defined but awaiting real history; naive O(n²) spatial neighbors need a spatial index at scale; PBF requires osmium (GeoJSON path shipped instead) |
+| Manual approval required | All four source templates |
+
+**A passing pipeline is not a production-ready dataset.** The dataset does not exist yet; it will exist only after legitimate sources are approved, ingested, validated, and quality-gated — and it must be re-evaluated at that point.
+
+### 14.4 Housekeeping delivered with the addendum
+
+- `.gitignore` extended: dataset caches, exports, version manifests, lineage files, and adapter scratch dirs are never committed (third-party data stays out of git; datasets are reproducible from pinned sources).
+- `ml/pyproject.toml` dependencies updated (`h3`, `pyarrow`, `pycountry`, `pyyaml`, `requests`, `numpy`) and locked.
+- README updated with the Dataset Pipeline section, commands, and corrected test totals (390).

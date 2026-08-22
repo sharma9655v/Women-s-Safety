@@ -5,6 +5,12 @@ description = "ML experiments for Map for Women. Training is gated on labeled da
 requires-python = ">=3.12"
 dependencies = [
     "psycopg[binary]>=3.2",
+    "h3>=4.0",
+    "numpy>=1.26",
+    "pyarrow>=14.0",
+    "pycountry>=22.0",
+    "pyyaml>=6.0",
+    "requests>=2.31",
 ]
 
 [dependency-groups]
@@ -17,7 +23,7 @@ dev = [
 package = true
 
 [tool.setuptools]
-packages = ["ml"]
+packages = ["ml", "ml.data", "ml.data.config", "ml.data.exports", "ml.data.features", "ml.data.geocoding", "ml.data.ingestion", "ml.data.normalization", "ml.data.quality", "ml.data.sources", "ml.data.spatial", "ml.data.validation", "ml.data.versioning"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

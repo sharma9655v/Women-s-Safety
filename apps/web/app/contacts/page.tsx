@@ -1,204 +1,92 @@
 "use client";
-
-import { Loader2, Phone, Plus, Trash2, UserRound } from "lucide-react";
-import { type FormEvent, useEffect, useState } from "react";
-import { Badge } from "@/app/components/ui/Badge";
-import { Button } from "@/app/components/ui/Button";
-import { Card } from "@/app/components/ui/Card";
-import { Input, Select } from "@/app/components/ui/Input";
-import { createContact, deleteContact, fetchContacts, updateContact } from "@/lib/api";
-import type { ContactRole, TrustedContact } from "@/lib/types";
-
-const EMPTY_FORM = { name: "", relationship: "", phone: "", role: "primary" as ContactRole };
+import { useState } from "react";
+import { useQuery } from "@/lib/query";
+import { api } from "@/lib/api";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Badge } from "@/components/ui/Badge";
+import { Modal } from "@/components/ui/Modal";
+import { UserPlus, UserCheck, UserX, Phone, Mail, Star, UserMinus, Loader2, Edit, Trash2 } from "lucide-react";
+import { formatDistance } from "@/lib/format";
 
 export default function ContactsPage() {
-  const [contacts, setContacts] = useState<TrustedContact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [removing, setRemoving] = useState<number | null>(null);
+  const { data, mutate } = useQuery("contacts-page", () => api.contacts.list(), { revalidateMs: 30_000 });
+  const [showModal, setShowModal] = useState(false);
+  const [editing, setEditing] = useState<import("@/lib/types").TrustedContact | null>(null);
+  const [form, setForm] = useState({ name: "", relationship: "", phone: "", role: "primary" as "primary" | "secondary", enabled: true });
 
-  useEffect(() => {
-    let cancelled = false;
-    fetchContacts()
-      .then((c) => {
-        if (!cancelled) setContacts(c);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Could not load your trusted contacts.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const openCreate = () => { setEditing(null); setForm({ name: "", relationship: "", phone: "", role: "primary", enabled: true }); setShowModal(true); };
+  const openEdit = (c: import("@/lib/types").TrustedContact) => { setEditing(c); setForm({ name: c.name, relationship: c.relationship, phone: c.phone, role: c.role, enabled: c.enabled }); setShowModal(true); };
 
-  const submit = async (e: FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.phone.trim()) return;
-    setSaving(true);
-    setError(null);
     try {
-      const created = await createContact({
-        name: form.name.trim(),
-        relationship: form.relationship.trim() || "friend",
-        phone: form.phone.trim(),
-        role: form.role,
-      });
-      setContacts((prev) => [...prev, created]);
-      setForm(EMPTY_FORM);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not add the contact.");
-    } finally {
-      setSaving(false);
-    }
+      if (editing) await api.contacts.update(editing.id, form);
+      else await api.contacts.create(form);
+      setShowModal(false);
+      mutate();
+    } catch { alert("Failed"); }
   };
 
-  const toggle = async (c: TrustedContact) => {
-    try {
-      const updated = await updateContact(c.id, { enabled: !c.enabled });
-      setContacts((prev) => prev.map((x) => (x.id === c.id ? updated : x)));
-    } catch {
-      setError("Could not update the contact.");
-    }
-  };
-
-  const remove = async (c: TrustedContact) => {
-    setRemoving(c.id);
-    setError(null);
-    try {
-      await deleteContact(c.id);
-      setContacts((prev) => prev.filter((x) => x.id !== c.id));
-    } catch {
-      setError("Could not remove the contact.");
-    } finally {
-      setRemoving(null);
-    }
-  };
+  const remove = async (id: number) => { if (confirm("Remove this contact?")) { await api.contacts.remove(id); mutate(); } };
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-3xl space-y-4 p-4 lg:p-6">
-        <header>
-          <h1 className="text-xl font-bold text-foreground">
-            <span className="text-primary">Trusted Contacts</span>
-          </h1>
-          <p className="text-sm text-text-muted">
-            People you can reach in an emergency. Phone numbers are encrypted at rest and only shown
-            to you.
-          </p>
-        </header>
-
-        {error ? (
-          <p className="glass rounded-2xl p-4 text-center text-sm text-danger">{error}</p>
-        ) : null}
-
-        <Card>
-          <h2 className="mb-3 text-sm font-semibold text-foreground">Add a contact</h2>
-          <form onSubmit={submit} className="space-y-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Input
-                id="contact-name"
-                label="Name"
-                placeholder="e.g. Mother"
-                value={form.name}
-                maxLength={60}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                required
-              />
-              <Input
-                id="contact-relationship"
-                label="Relationship"
-                placeholder="e.g. family, friend"
-                value={form.relationship}
-                maxLength={30}
-                onChange={(e) => setForm((f) => ({ ...f, relationship: e.target.value }))}
-              />
-              <Input
-                id="contact-phone"
-                label="Phone"
-                type="tel"
-                placeholder="+91…"
-                value={form.phone}
-                minLength={7}
-                maxLength={20}
-                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                required
-              />
-              <Select
-                id="contact-role"
-                label="Role"
-                value={form.role}
-                onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as ContactRole }))}
-              >
-                <option value="primary">Primary</option>
-                <option value="secondary">Secondary</option>
-              </Select>
-            </div>
-            <Button type="submit" loading={saving} size="sm">
-              <Plus className="size-3.5" aria-hidden /> Add contact
-            </Button>
-          </form>
-        </Card>
-
-        {loading ? (
-          <div className="space-y-3">
-            <Card>
-              <div className="flex items-center gap-2 text-sm text-text-muted">
-                <Loader2 className="size-4 animate-spin" aria-hidden /> Loading contacts…
-              </div>
-            </Card>
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
+      <div className="p-4 sm:p-6 border-b border-line">
+        <div className="mx-auto max-w-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-bold">Trusted Contacts</h1>
+            <p className="text-sm text-text-mid">Contacts notified during emergencies, guardian journeys, and location sharing.</p>
           </div>
-        ) : contacts.length === 0 ? (
-          <p className="glass rounded-2xl p-4 text-center text-sm text-text-muted">
-            No trusted contacts yet. Add at least one so SOS can share your location with them.
-          </p>
-        ) : (
-          <div className="space-y-2.5">
-            {contacts.map((c) => (
-              <Card key={c.id} className="flex items-center gap-3 p-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <UserRound className="size-4" aria-hidden />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                    {c.name}
-                    <Badge tone={c.role === "primary" ? "primary" : "default"}>{c.role}</Badge>
-                  </p>
-                  <p className="flex items-center gap-1.5 text-xs text-text-muted">
-                    <Phone className="size-3" aria-hidden />
-                    {c.phone} · {c.relationship}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void toggle(c)}
-                  className={`cursor-pointer rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                    c.enabled
-                      ? "border-success/30 bg-success/10 text-success"
-                      : "border-border bg-surface text-text-muted"
-                  }`}
-                  aria-label={`${c.enabled ? "Disable" : "Enable"} ${c.name}`}
-                >
-                  {c.enabled ? "Enabled" : "Disabled"}
-                </button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  loading={removing === c.id}
-                  onClick={() => void remove(c)}
-                  aria-label={`Remove ${c.name}`}
-                >
-                  <Trash2 className="size-3.5 text-danger" aria-hidden />
-                </Button>
-              </Card>
-            ))}
-          </div>
-        )}
+          <Button onClick={openCreate}><UserPlus size={16} /> Add Contact</Button>
+        </div>
       </div>
+
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="mx-auto max-w-xl space-y-3">
+          {data?.contacts?.length === 0 ? (
+            <Card variant="glass" className="text-center py-12"><UserPlus size={48} className="mx-auto text-text-low mb-4" /><p className="text-text-mid">No contacts yet</p><Button className="mt-4" onClick={openCreate}>Add First Contact</Button></Card>
+          ) : (
+            data?.contacts?.map(c => (
+              <Card key={c.id} variant="glass" className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-12 rounded-xl bg-primary/20 flex items-center justify-center"><UserCheck size={20} className="text-primary" /></div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{c.name}</span>
+                      <Badge variant={c.role === "primary" ? "success" : "info"}> {c.role} </Badge>
+                      <Badge variant={c.enabled ? "success" : "default"}> {c.enabled ? "Active" : "Inactive"} </Badge>
+                    </div>
+                    <p className="text-sm text-text-mid flex items-center gap-1"><Phone size={14} /> {c.phone} • {c.relationship}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(c)}><Edit size={16} /></Button>
+                  <Button variant="ghost" size="icon" danger onClick={() => remove(c.id)}><Trash2 size={16} /></Button>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+      </div>
+
+      <Modal open={showModal} onClose={() => setShowModal(false)} title={editing ? "Edit Contact" : "Add Contact"}>
+        <form onSubmit={submit} className="space-y-4">
+          <Input label="Name" placeholder="e.g., Priya Sharma" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+          <Input label="Relationship" placeholder="e.g., Sister, Friend, Parent" value={form.relationship} onChange={e => setForm(f => ({ ...f, relationship: e.target.value }))} required />
+          <Input label="Phone" type="tel" placeholder="+91 9XXXXXXXXX" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} required />
+          <div className="grid gap-2 sm:grid-cols-2">
+            <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="role" value="primary" checked={form.role === "primary"} onChange={() => setForm(f => ({ ...f, role: "primary" }))} className="accent-primary" /><Star size={16} className="text-warn" /><span>Primary</span></label>
+            <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="role" value="secondary" checked={form.role === "secondary"} onChange={() => setForm(f => ({ ...f, role: "secondary" }))} className="accent-primary" /><UserCheck size={16} /><span>Secondary</span></label>
+          </div>
+          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={form.enabled} onChange={e => setForm(f => ({ ...f, enabled: e.target.checked }))} className="accent-primary" /><span>Enabled for notifications</span></label>
+          <div className="flex gap-2 pt-2">
+            <Button type="submit" className="flex-1">{editing ? "Save" : "Add"} Contact</Button>
+            <Button type="button" variant="ghost" onClick={() => setShowModal(false)}>Cancel</Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

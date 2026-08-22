@@ -1,30 +1,19 @@
-import type { ReactNode } from "react";
+import { HTMLAttributes, forwardRef } from "react";
 
-type Tone = "default" | "success" | "warning" | "danger" | "info" | "primary";
-
-const TONE_CLASSES: Record<Tone, string> = {
-  default: "bg-surface-hover text-text-secondary border-border",
-  success: "bg-success/10 text-success border-success/25",
-  warning: "bg-warning/10 text-warning border-warning/25",
-  danger: "bg-emergency/10 text-emergency border-emergency/25",
-  info: "bg-info/10 text-info border-info/25",
-  primary: "bg-primary/10 text-primary border-primary/25",
-};
-
-export function Badge({
-  children,
-  tone = "default",
-  className = "",
-}: {
-  children: ReactNode;
-  tone?: Tone;
-  className?: string;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-[11px] font-medium ${TONE_CLASSES[tone]} ${className}`}
-    >
-      {children}
-    </span>
-  );
-}
+export const Badge = forwardRef<HTMLSpanElement, HTMLAttributes<HTMLSpanElement> & { variant?: "default" | "success" | "warn" | "danger" | "info" }>(
+  ({ className = "", children, variant = "default", ...props }, ref) => {
+    const variants = {
+      default: "bg-surface-elevated text-text-mid border border-line",
+      success: "bg-safe/15 text-safe border-safe/30",
+      warn: "bg-warn/15 text-warn border-warn/30",
+      danger: "bg-danger/15 text-danger border-danger/30",
+      info: "bg-accent/15 text-accent border-accent/30",
+    };
+    return (
+      <span ref={ref} className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]} ${className}`} {...props}>
+        {children}
+      </span>
+    );
+  },
+);
+Badge.displayName = "Badge";

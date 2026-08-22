@@ -1,0 +1,129 @@
+# Source Registry for Women Safety Dataset Pipeline
+#
+# Each source must be explicitly approved. Only enabled sources are ingested.
+# Never add sources without verifying license, terms, and privacy compliance.
+
+sources:
+  # Example: Government open data (template - requires real source URL)
+  # - source_id: "india_ncrb_crime"
+  #   source_name: "NCRB Crime in India Statistics"
+  #   source_type: "government"
+  #   publisher: "National Crime Records Bureau, Ministry of Home Affairs, Government of India"
+  #   license: "Open Government Data License - India"
+  #   source_url: "https://data.gov.in/catalog/crime-india"
+  #   geographical_coverage: "India (all states/UTs)"
+  #   temporal_coverage: "1953-present (annual)"
+  #   update_frequency: "annual"
+  #   allowed_usage: "research, commercial, derivative works with attribution"
+  #   reliability_level: 0.95
+  #   parser: "ncrb_csv"
+  #   enabled: false
+
+  # Example: Municipal streetlight data (template)
+  # - source_id: "delhi_streetlights"
+  #   source_name: "Delhi Streetlight Maintenance Data"
+  #   source_type: "municipal"
+  #   publisher: "Delhi Municipal Corporation"
+  #   license: "Open Data License - Delhi"
+  #   source_url: "https://data.delhi.gov.in/dataset/streetlight-maintenance"
+  #   geographical_coverage: "Delhi NCT"
+  #   temporal_coverage: "2020-present"
+  #   update_frequency: "monthly"
+  #   allowed_usage: "research, non-commercial"
+  #   reliability_level: 0.90
+  #   parser: "municipal_csv"
+  #   enabled: false
+
+  # Example: OpenStreetMap lighting tags (template)
+  # - source_id: "osm_lighting_india"
+  #   source_name: "OpenStreetMap Streetlight Tags - India"
+  #   source_type: "osm"
+  #   publisher: "OpenStreetMap Contributors"
+  #   license: "ODbL 1.0"
+  #   source_url: "https://planet.openstreetmap.org/"
+  #   geographical_coverage: "India (where mapped)"
+  #   temporal_coverage: "2004-present"
+  #   update_frequency: "continuous (daily extracts)"
+  #   allowed_usage: "research, commercial with attribution and share-alike"
+  #   reliability_level: 0.70
+  #   parser: "osm_pbf"
+  #   enabled: false
+
+  # Example: Research dataset (template)
+  # - source_id: "women_safety_research_2023"
+  #   source_name: "Women Safety Perception Survey 2023"
+  #   source_type: "research"
+  #   publisher: "Academic Institution"
+  #   license: "CC BY 4.0"
+  #   source_url: "https://doi.org/xxx"
+  #   geographical_coverage: "Selected Indian cities"
+  #   temporal_coverage: "2023"
+  #   update_frequency: "one-time"
+  #   allowed_usage: "research, non-commercial"
+  #   reliability_level: 0.85
+  #   parser: "research_csv"
+  #   enabled: false
+
+# Configuration for pipeline behavior
+pipeline:
+  # Minimum data quality score to include in ML dataset
+  min_data_quality_score: 0.3
+
+  # Spatial aggregation for public datasets
+  spatial_aggregation:
+    enabled: true
+    method: "h3"  # or "geohash", "grid", "administrative"
+    resolution: 8  # H3 resolution (8 = ~0.74km edge length)
+    # Administrative level for aggregation: "district", "city", "state"
+    admin_level: "district"
+
+  # Privacy settings
+  privacy:
+    # Never expose exact coordinates for sensitive categories
+    sensitive_categories:
+      - "sexual_assault"
+      - "rape"
+      - "domestic_violence"
+      - "molestation"
+      - "kidnapping"
+    # Generalize coordinates for sensitive categories
+    generalize_sensitive: true
+    # Default precision for non-sensitive (decimal degrees)
+    default_precision: 4  # ~11m at equator
+
+  # Deduplication
+  deduplication:
+    enabled: true
+    # Fields to use for matching (in order of priority)
+    match_fields:
+      - "source_id"
+      - "original_source_record_id"
+      - "incident_date"
+      - "latitude"
+      - "longitude"
+      - "crime_category"
+    # Require exact match on these fields
+    exact_match_fields:
+      - "source_id"
+      - "original_source_record_id"
+
+  # Temporal split for training
+  temporal_split:
+    train_end: "2023-12-31"
+    validation_end: "2024-06-30"
+    test_start: "2024-07-01"
+
+  # Excluded source types for ML training
+  excluded_source_types:
+    - "demo_seed"
+
+  # Target generation
+  target:
+    type: "future_incident_density"  # or "hotspot_classification", "elevated_rate"
+    prediction_horizon_days: 90
+    spatial_resolution: 8
+    minimum_incidents_for_positive: 3
+
+# Pipeline version
+version: "1.0.0"
+created: "2026-08-22"

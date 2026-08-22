@@ -1,131 +1,44 @@
 "use client";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { formatDuration, formatDistance, riskBandLabel, riskBandStyle, FRESHNESS_STYLE, freshnessFromAge } from "@/lib/format";
+import { Shield, Clock, MapPin, AlertTriangle, Check, ChevronRight, ChevronLeft } from "lucide-react";
+import { RouteCandidate } from "@/lib/types";
 
-import { motion } from "framer-motion";
-import { Clock, MoveRight, ShieldCheck } from "lucide-react";
-import { FreshnessBadge } from "@/app/components/safety/FreshnessBadge";
-import { formatDistance, formatDuration } from "@/lib/format";
-import type { RouteCandidate } from "@/lib/types";
+interface RouteCardProps { route: RouteCandidate; index: number; selected: boolean; onSelect: () => void; onViewDetails?: () => void; }
 
-const ROUTE_STYLES = {
-  recommended: {
-    label: "Recommended",
-    badge: "border-success/30 bg-success/12 text-success",
-    glow: "#06d6a0",
-  },
-  alternative: {
-    label: "Alternative",
-    badge: "border-warning/30 bg-warning/12 text-warning",
-    glow: "#ffa726",
-  },
-  shortest: {
-    label: "Shortest",
-    badge: "border-danger/30 bg-danger/12 text-danger",
-    glow: "#ff4757",
-  },
-} as const;
-
-export interface RouteCardProps {
-  route: RouteCandidate;
-  selected: boolean;
-  hovered: boolean;
-  onSelect: () => void;
-  onHover: (hovered: boolean) => void;
-  className?: string;
-}
-
-export function RouteCard({
-  route,
-  selected,
-  hovered,
-  onSelect,
-  onHover,
-  className = "",
-}: RouteCardProps) {
-  const style = ROUTE_STYLES[route.label] ?? ROUTE_STYLES.recommended;
-  const score = route.safety.value;
-
+export function RouteCard({ route, index, selected, onSelect, onViewDetails }: RouteCardProps) {
+  const freshness = freshnessFromAge(route.freshness?.tier === "unknown" ? null : (route.freshness?.updated_at ? (Date.now() - new Date(route.freshness.updated_at).getTime()) / 3600_000 : null));
+  const riskColor = riskBandStyle(route.safety.band);
   return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
-      initial={{ opacity: 0, y: 14 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-      aria-pressed={selected}
-      className={`group w-full cursor-pointer rounded-2xl border bg-surface p-3.5 text-left transition-all duration-300 ${
-        selected
-          ? "border-primary/40 bg-surface-hover shadow-lg shadow-primary/8"
-          : "border-border hover:border-primary/30 hover:bg-surface-hover"
-      } ${hovered && !selected ? "shadow-md" : ""} ${className}`}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            {route.title}
-            {route.label === "recommended" ? (
-              <ShieldCheck
-                className="size-3.5 text-success"
-                aria-label="Recommended based on available evidence"
-              />
-            ) : null}
-          </p>
-          <p className="mt-0.5 truncate text-xs text-text-muted">{route.via}</p>
+    <Card variant={selected ? "glass-strong" : "glass"} className={`relative flex flex-col ${selected ? "border-primary/40 ring-2 ring-primary/20" : ""} group`}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-display font-bold text-primary/80">{index + 1}</span>
+          <div>
+            <div className="flex items-center gap-1.5 text-sm">
+              <Badge variant={route.label === "recommended" ? "success" : route.label === "alternative" ? "info" : "warn"}>{route.label}</Badge>
+              <span className="font-medium">{route.title}</span>
+            </div>
+            <p className="text-xs text-text-mid mt-0.5">{route.via}</p>
+          </div>
         </div>
-        <div className="relative shrink-0">
-          <div
-            className="absolute -inset-2 rounded-full opacity-25 blur-lg"
-            style={{
-              background: `radial-gradient(circle, ${style.glow}66, transparent 70%)`,
-            }}
-            aria-hidden
-          />
-          <span
-            className={`relative flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-0.5 text-sm font-bold ${style.badge}`}
-          >
-            {score}
-            <span className="text-[10px] font-medium opacity-70">/100</span>
-          </span>
-        </div>
+        <Button variant={selected ? "primary" : "ghost"} size="sm" onClick={onSelect} className="shrink-0">
+          {selected ? <Check size={16} /> : <ChevronRight size={16} />}
+        </Button>
       </div>
-
-      <div className="mt-2 flex items-center gap-3 text-xs text-text-secondary">
-        <span className="flex items-center gap-1">
-          <Clock className="size-3.5" aria-hidden />
-          {formatDuration(route.duration_s)}
-        </span>
-        <span className="flex items-center gap-1">
-          <MoveRight className="size-3.5" aria-hidden />
-          {formatDistance(route.distance_m)}
-        </span>
+      <div className="mt-3 grid gap-3 sm:grid-cols-3">
+        <div className="glass p-3 rounded-xl text-center"><Clock size={18} className="mx-auto text-accent" /><p className="text-xs text-text-low">Duration</p><p className="font-semibold">{formatDuration(route.duration_s)}</p></div>
+        <div className="glass p-3 rounded-xl text-center"><MapPin size={18} className="mx-auto text-accent" /><p className="text-xs text-text-low">Distance</p><p className="font-semibold">{formatDistance(route.distance_m)}</p></div>
+        <div className="glass p-3 rounded-xl text-center"><Shield size={18} className={`mx-auto ${riskColor}`} /><p className="text-xs text-text-low">Safety</p><p className={`font-semibold ${riskColor}`}>{riskBandLabel(route.safety.band)}</p></div>
       </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <FreshnessBadge tier={route.freshness.tier} />
-        <span className="text-[10px] text-text-muted">Confidence: {route.safety.confidence}</span>
-        {route.uncertainty !== undefined ? (
-          <span className="text-[10px] text-text-muted">
-            Uncertainty: {Math.round(route.uncertainty * 100)}%
-          </span>
-        ) : null}
-        {route.high_risk_fraction !== undefined && route.high_risk_fraction > 0 ? (
-          <span className="text-[10px] text-danger">
-            High-risk share: {Math.round(route.high_risk_fraction * 100)}%
-          </span>
-        ) : null}
-        {route.risk_exposure_m !== undefined && route.risk_exposure_m > 0 ? (
-          <span className="text-[10px] text-text-muted">
-            Risky exposure: {Math.round(route.risk_exposure_m)} m
-          </span>
-        ) : null}
+      <div className="mt-3 flex items-center gap-2 flex-wrap text-xs">
+        <Badge className={FRESHNESS_STYLE[freshness.tier]}>{freshness.label}</Badge>
+        {route.warnings?.map((w, i) => <Badge key={i} variant="danger"><AlertTriangle size={10} /> {w}</Badge>)}
+        {route.reasons?.map((r, i) => <Badge key={i} variant="info">{r}</Badge>)}
       </div>
-
-      {route.label === "recommended" ? (
-        <p className="mt-2 border-t border-border pt-2 text-[10px] text-text-muted">
-          Recommended based on available evidence — not a safety guarantee.
-        </p>
-      ) : null}
-    </motion.button>
+      {onViewDetails && <Button variant="ghost" size="sm" onClick={onViewDetails} className="mt-3 w-full justify-center text-text-mid hover:text-primary">View segment evidence <ChevronRight size={14} /></Button>}
+    </Card>
   );
 }

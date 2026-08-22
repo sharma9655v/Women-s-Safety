@@ -1,46 +1,24 @@
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import { InputHTMLAttributes, forwardRef } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  hint?: string;
+  error?: string;
 }
 
-export function Input({ label, hint, className = "", ...rest }: InputProps) {
-  return (
-    <div>
-      {label ? (
-        <label htmlFor={rest.id} className="mb-1.5 block text-xs font-medium text-text-secondary">
-          {label}
-        </label>
-      ) : null}
+export const Input = forwardRef<HTMLInputElement, InputProps>(
+  ({ className = "", error, label, ...props }, ref) => (
+    <div className="w-full">
+      {label && <label className="block text-sm font-medium text-text-mid mb-1.5">{label}</label>}
       <input
-        className={`h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-all duration-200 placeholder:text-text-muted focus:border-primary/50 focus:bg-surface-hover focus:shadow-sm focus:outline-none ${className}`}
-        {...rest}
+        ref={ref}
+        className={`w-full px-4 py-2.5 bg-surface-elevated/50 border rounded-xl text-text-hi placeholder:text-text-low
+          focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary
+          ${error ? "border-danger focus:ring-danger/40" : "border-line"}
+          ${className}`}
+        {...props}
       />
-      {hint ? <p className="mt-1 text-right text-[11px] text-text-muted">{hint}</p> : null}
+      {error && <p className="mt-1.5 text-sm text-danger">{error}</p>}
     </div>
-  );
-}
-
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
-  children: ReactNode;
-}
-
-export function Select({ label, children, className = "", ...rest }: SelectProps) {
-  return (
-    <div>
-      {label ? (
-        <label htmlFor={rest.id} className="mb-1.5 block text-xs font-medium text-text-secondary">
-          {label}
-        </label>
-      ) : null}
-      <select
-        className={`h-11 w-full appearance-none rounded-xl border border-border bg-surface px-3 text-sm text-foreground transition-all duration-200 focus:border-primary/50 focus:bg-surface-hover focus:shadow-sm focus:outline-none ${className}`}
-        {...rest}
-      >
-        {children}
-      </select>
-    </div>
-  );
-}
+  ),
+);
+Input.displayName = "Input";

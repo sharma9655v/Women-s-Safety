@@ -1,39 +1,22 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import { HTMLAttributes, forwardRef } from "react";
 
-export interface CardProps extends HTMLAttributes<HTMLDivElement> {
-  children: ReactNode;
-  interactive?: boolean;
+interface CardProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: "glass" | "glass-strong" | "elevated" | "emergency";
 }
 
-export function Card({ children, interactive = false, className = "", ...rest }: CardProps) {
-  return (
-    <div
-      className={`glass rounded-2xl p-4 sm:p-5 ${
-        interactive ? "card-hover cursor-pointer hover:bg-surface-hover" : ""
-      } ${className}`}
-      {...rest}
-    >
-      {children}
-    </div>
-  );
-}
-
-export function CardHeader({
-  title,
-  subtitle,
-  action,
-}: {
-  title: string;
-  subtitle?: string;
-  action?: ReactNode;
-}) {
-  return (
-    <div className="mb-3 flex items-start justify-between gap-3">
-      <div>
-        <h3 className="text-base font-semibold text-foreground">{title}</h3>
-        {subtitle ? <p className="mt-0.5 text-xs text-text-muted">{subtitle}</p> : null}
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ className = "", children, variant = "glass", ...props }, ref) => {
+    const variants = {
+      glass: "glass",
+      "glass-strong": "glass-strong",
+      elevated: "bg-surface-elevated border border-line",
+      emergency: "glass-strong border-emergency/30",
+    };
+    return (
+      <div ref={ref} className={`${variants[variant]} p-4 sm:p-6 ${className}`} {...props}>
+        {children}
       </div>
-      {action}
-    </div>
-  );
-}
+    );
+  },
+);
+Card.displayName = "Card";

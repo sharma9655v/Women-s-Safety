@@ -17,7 +17,7 @@
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white)
 ![OSRM](https://img.shields.io/badge/OSRM-Routing-2C8EBB?style=flat-square)
 ![CI](https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-353%20automated-3FB950?style=flat-square)
+![Tests](https://img.shields.io/badge/tests-390%20automated-3FB950?style=flat-square)
 ![Android](https://img.shields.io/badge/Android-Kotlin%20%2B%20Compose-3DDC84?style=flat-square&logo=android&logoColor=white)
 
 ---
@@ -33,6 +33,7 @@
 - [Model Registry](#-model-registry)
 - [GIS Architecture](#-gis-architecture)
 - [Data & Evidence Architecture](#-data--evidence-architecture)
+- [Automated Dataset Pipeline](#-automated-dataset-pipeline)
 - [Frontend](#-frontend)
 - [Backend](#-backend)
 - [Monitoring](#-monitoring)
@@ -104,6 +105,7 @@ Alert / Dashboard / GIS Integration (maps, overlays, heatmap, SOS, reports)
 ### 📊 Evidence & Civic Intelligence
 
 - Civic data ingestion with validation, normalization, and deduplication
+- **Automated dataset pipeline** — source registry → ingestion → normalization → validation → deduplication → privacy-preserving spatialization → feature engineering → quality reports → versioned exports (see [Dataset Pipeline](#-automated-dataset-pipeline))
 - OSM live-feed ingestion (multi-city) with provenance attribution
 - Six-state observation lifecycle: `VERIFIED → REPORTED → CORROBORATED → CONFLICTING → EXPIRED → REJECTED`
 - Per-type freshness decay and expiry — stale evidence never masquerades as current
@@ -140,7 +142,7 @@ Alert / Dashboard / GIS Integration (maps, overlays, heatmap, SOS, reports)
 
 ### 📈 Reliability
 
-- **353 automated tests** across backend, frontend, ML, and research suites
+- **390 automated tests** across backend, frontend, ML, and research suites
 - API health + readiness checks (`/health`, `/ready`)
 - Prometheus-compatible metrics (`/metrics`)
 - Load-testing harness with latency percentiles and error-rate thresholds
@@ -385,7 +387,21 @@ Map-for-Women/
 │   │   ├── eval.py                       # Metrics: Brier, ROC-AUC, PR-AUC, ECE, F1
 │   │   ├── model_registry.py             # models/registry.json conventions
 │   │   └── artifacts/                    # Recorded gate report + dataset manifests
-│   └── tests/                            # 18 tests
+│   │   └── data/                         # Automated dataset pipeline (see Dataset Pipeline)
+│   │       ├── build_dataset.py          # python -m ml.data.build_dataset entry point
+│   │       ├── update.py                 # Incremental update (checksum-aware)
+│   │       ├── config/                   # Canonical schema + sources.yaml registry
+│   │       ├── sources/                  # Per-source ingestion adapters
+│   │       ├── ingestion/                # Download w/ cache, retry, checksums
+│   │       ├── normalization/            # Raw → canonical record mapping
+│   │       ├── validation/               # Schema validation + deduplication
+│   │       ├── geocoding/                # Rate-limited geocoder clients
+│   │       ├── spatial/                  # H3 aggregation + privacy generalization
+│   │       ├── features/                 # Temporal/spatial features + temporal split
+│   │       ├── quality/                  # Quality reports (JSON + HTML)
+│   │       ├── versioning/               # Manifests, hashes, lineage tracking
+│   │       └── exports/                  # CSV / Parquet / JSONL writers
+│   └── tests/                            # 55 tests (incl. pipeline suite + fixtures)
 │
 ├── models/                               # AI model registry & checkpoints
 │   ├── registry.json                     # Model registry (schema v2)
@@ -593,6 +609,54 @@ kept separate and labeled as illustrative in the UI.
 
 ---
 
+## 🏭 Automated Dataset Pipeline
+
+A reproducible, privacy-preserving dataset-generation pipeline for the (gated) ML component lives
+in `ml/ml/data/`. It is built on one rule: **never fabricate safety observations** — no invented
+incidents, coordinates, labels, or metrics. The dataset only ever reflects approved, traceable
+sources.
+
+```text
+SOURCE → DOWNLOAD/CACHE → NORMALIZE → VALIDATE → DEDUPLICATE
+       → GEOCODE (where legitimate) → SPATIAL AGGREGATION
+       → FEATURES → QUALITY CHECK → VERSION → EXPORT
+```
+
+### Safety rules enforced in code
+
+| Rule | Mechanism |
+| --- | --- |
+| Only approved sources | `config/sources.yaml` registry — unlisted/disabled sources are never fetched |
+| Licenses must be explicit | Ingestion refuses a source whose license is missing/unknown |
+| Demo data never trains | `source_type=demo_seed` records are dropped before validation |
+| No fabricated facts | Missing incident dates fail validation instead of defaulting to collection time |
+| Impossible geography rejected | Latitude/longitude bounds-checked; invalid values dropped |
+| Privacy-preserving spatialization | Sensitive categories generalized to H3-cell centroids; precision metadata kept |
+| PII never stored | Canonical schema has no names/phones/emails/addresses; only a boolean "description available" |
+| Traceable categories | Every record keeps `original_category` alongside the normalized one |
+| Deterministic deduplication | Same-source record IDs merge (best quality kept); cross-source records never merge — corroboration ≠ duplicate |
+| Data quality ≠ risk | `data_quality_score` measures provenance completeness; it is never presented as crime probability |
+| Immutable versioning | New builds get new versions + sha256 manifest + per-record lineage; nothing is overwritten |
+| Fail loudly | Empty datasets, unknown licenses, and validation failures stop the pipeline with non-zero exit |
+
+### Commands
+
+```bash
+uv run --directory ml python -m ml.data.build_dataset --offline   # build from cached sources
+uv run --directory ml python -m ml.data.update --offline          # incremental update (checksum-aware)
+```
+
+With no approved sources enabled, both commands exit honestly: `status: no_sources` /
+`up_to_date`. Raw downloads, exports, and version manifests are git-ignored — datasets are
+reproducible from pinned sources rather than committed.
+
+> **Status:** pipeline implemented and tested (37 dedicated tests); **zero sources approved yet**.
+> Enabling a source requires human review of its URL, license, terms, robots.txt, and privacy
+> implications in `ml/ml/data/config/sources.yaml`. A running pipeline does not mean the dataset
+> exists or is production-ready.
+
+---
+
 ## 🌐 Frontend
 
 The web interface is a fully API-driven Next.js 16 application — it renders what the backend
@@ -684,9 +748,9 @@ Testing is a first-class engineering pillar — enforced in CI on every push/PR.
 | --- | --- |
 | Backend tests (pytest, 27 modules) | **266 passing** |
 | Frontend tests (vitest + Testing Library, 8 suites) | **48 passing** |
-| ML workspace tests | **18 passing** |
+| ML workspace tests (incl. 37 dataset-pipeline tests) | **55 passing** |
 | Research harness tests | **21 passing** |
-| Type checking | `tsc --noEmit` clean · mypy enforced in CI |
+| Type checking | `tsc --noEmit` clean · mypy enforced in CI · ruff clean on `ml/data` |
 | Linting | Biome clean (web) · ruff enforced in CI (API) |
 | Production build | Next.js build passing (16 routes) |
 | E2E suites (Playwright) | 26/26 + 8/8 checks passing |
@@ -806,6 +870,15 @@ uv run --directory apps/api python -m app.seed_demo
 Writes labeled demo observations across 10 Delhi hotspots (`source_type=demo_seed`);
 safe to re-run (canonical hashes + `ON CONFLICT DO NOTHING`).
 
+### Dataset pipeline (offline smoke test)
+
+```bash
+uv run --directory ml pytest tests/test_data_pipeline.py -q   # 37 pipeline tests
+uv run --directory ml python -m ml.data.build_dataset --offline
+```
+
+The build reports `status: no_sources` until a source is approved and enabled — by design.
+
 ---
 
 ## 🔌 API Quick Reference
@@ -894,7 +967,7 @@ autonomous authority.
 ✓ Emergency workflows                   — SOS, guardian, check-ins, voice, fake-call
 ✓ Multi-city architecture               — 10-city registry + validation
 ✓ Production-oriented monitoring        — health, readiness, metrics
-✓ Automated testing                     — 353 tests, E2E suites, load harness
+✓ Automated testing                     — 390 tests, E2E suites, load harness
 ✓ Security-focused implementation       — tokens, headers, PII-safe, key-gated admin
 ✓ Web + Android architecture            — shared typed API contract
 ```
@@ -905,7 +978,7 @@ autonomous authority.
 
 The platform is architected for growth:
 
-- **Larger training datasets** — validated civic/NGO feeds expand evidence coverage
+- **Larger training datasets** — the automated dataset pipeline turns approved open data into validated, versioned training sets (the gate opens only on real verified evidence)
 - **Advanced model architectures** — the registry supports new checkpoints without core changes
 - **More geographic coverage** — India-wide OSRM graph + city-registry expansion
 - **Edge AI** — on-device inference for lower-latency predictions

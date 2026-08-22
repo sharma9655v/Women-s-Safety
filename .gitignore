@@ -21,6 +21,17 @@ ml/models/*.json
 ml/experiments/*.json
 ml/experiments/*.csv
 
+# Dataset pipeline outputs (caches, exports, version manifests, lineage)
+# Raw source files and built datasets are reproducible from sources.yaml;
+# never commit downloaded third-party data or generated exports.
+ml/data/cache/
+ml/data/exports/
+ml/data/versions/
+ml/cache_*/
+**/wsdp_cache_*/
+ml/.venv/
+ml/map_for_women_ml.egg-info/
+
 # Build output
 apps/web/.next/
 apps/web/out/

@@ -1,174 +1,55 @@
 "use client";
-
-import {
-  ChevronDown,
-  Cloud,
-  Languages,
-  MapPin,
-  Search,
-  SearchX,
-  Shield,
-  UserRound,
-} from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { NotificationsBell } from "@/app/components/notifications/NotificationsBell";
-import { ThemeToggle } from "@/app/components/theme/ThemeToggle";
-import { Dropdown } from "@/app/components/ui/Dropdown";
-import { useI18n } from "@/lib/i18n";
-import { useDiscreetMode } from "./AppShell";
+import { usePathname } from "next/navigation";
+import { Menu, LayoutDashboard, MapPin, AlertTriangle, Users, Phone, Settings, Shield, Route, HelpCircle, LogOut, User, Layers } from "lucide-react";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { ThemeToggle } from "./ThemeToggle";
+import { NotificationsBell } from "./NotificationsBell";
 
-const LOCATIONS = [
-  { id: "delhi", label: "Delhi, India", hint: "Current region" },
-  { id: "noida", label: "Noida, India", hint: "Nearby region" },
-  { id: "gurugram", label: "Gurugram, India", hint: "Nearby region" },
-];
-
-const SUGGESTIONS = [
-  { id: "cp", label: "Connaught Place", hint: "Market & metro hub" },
-  { id: "ig", label: "India Gate", hint: "Landmark" },
-  { id: "ak", label: "Akshardham, Delhi", hint: "Temple complex" },
-  { id: "ito", label: "ITO Crossing", hint: "Business district" },
-  { id: "ln", label: "Lajpat Nagar", hint: "Market area" },
-];
+const NAV = [
+  { href: "/live", label: "Live", icon: LayoutDashboard, iconClassName: "" },
+  { href: "/plan", label: "Plan", icon: Route, iconClassName: "" },
+  { href: "/sos", label: "SOS", icon: AlertTriangle, iconClassName: "text-emergency" },
+  { href: "/alerts", label: "Alerts", icon: MapPin, iconClassName: "" },
+  { href: "/community", label: "Community", icon: Users, iconClassName: "" },
+  { href: "/contacts", label: "Contacts", icon: Phone, iconClassName: "" },
+  { href: "/report", label: "Report", icon: Shield, iconClassName: "" },
+  { href: "/profile", label: "Profile", icon: User, iconClassName: "" },
+  { href: "/privacy", label: "Privacy", icon: Layers, iconClassName: "" },
+  { href: "/admin", label: "Admin", icon: Settings, iconClassName: "" },
+  { href: "/models", label: "Models", icon: HelpCircle, iconClassName: "" },
+] as const;
 
 export function TopHeader() {
-  const [query, setQuery] = useState("");
-  const [focused, setFocused] = useState(false);
-  const { lang, setLang, t } = useI18n();
-  const discreet = useDiscreetMode();
-
-  const matches = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (q.length < 2) return [];
-    return SUGGESTIONS.filter(
-      (s) => s.label.toLowerCase().includes(q) || s.hint.toLowerCase().includes(q),
-    ).slice(0, 5);
-  }, [query]);
-
+  const pathname = usePathname();
   return (
-    <header className="app-top-header glass relative z-20 flex h-14 shrink-0 items-center gap-2 border-x-0 border-t-0 px-3 landscape:max-lg:h-12 sm:px-4">
-      {/* Compact identity for portrait and tablet layouts. */}
-      <div className="mobile-brand flex min-w-0 items-center gap-2 lg:hidden">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-white shadow-md shadow-primary/20">
-          {discreet.enabled && !discreet.loading ? (
-            <Cloud className="size-5" aria-hidden />
-          ) : (
-            <Shield className="size-5" aria-hidden />
-          )}
-        </span>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-foreground">
-            {discreet.enabled && !discreet.loading ? discreet.label : t("appName")}
-          </p>
-          <p className="flex items-center gap-1 text-[10px] text-text-muted">
-            <MapPin className="size-3" aria-hidden /> {t("header.region")}
-          </p>
+    <header className="sticky top-0 z-40 glass border-b border-line">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 font-display font-semibold text-xl text-text-hi" aria-label="Map for Women Home">
+          <span className="size-8 rounded-xl bg-gradient-aurora flex items-center justify-center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="size-5 text-bg"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/><path d="M12 6v6l4 2"/></svg></span>
+          <span className="hidden sm:block">Map for Women</span>
+        </Link>
+        <nav className="hidden md:flex items-center gap-1">
+          {NAV.map((item) => (
+            <Link key={item.href} href={item.href} className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors ${pathname.startsWith(item.href) ? "bg-primary/15 text-primary" : "text-text-mid hover:text-text-hi hover:bg-white/5"}`}>
+              <item.icon size={18} className={item.iconClassName} />
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <NotificationsBell />
+          <Dropdown
+            trigger={<button className="flex items-center gap-2 p-1.5 rounded-lg text-text-mid hover:text-text-hi hover:bg-white/5"><svg className="size-8 rounded-full bg-gradient-aurora" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span className="hidden sm:block font-medium">Account</span></button>}
+            items={[
+              { label: "Settings", onClick: () => {}, icon: <Settings size={16} /> },
+              { label: "Sign out", onClick: () => {}, icon: <LogOut size={16} />, danger: true },
+            ]}
+          />
+          <button className="md:hidden p-2 rounded-lg text-text-mid hover:text-text-hi hover:bg-white/5" aria-label="Menu"><svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
         </div>
       </div>
-
-      <div className="hidden items-center gap-3 lg:flex">
-        <Dropdown
-          value="delhi"
-          options={LOCATIONS}
-          onChange={() => {}}
-          ariaLabel="Select location"
-          trigger={
-            <span className="flex items-center gap-1.5">
-              <MapPin className="size-4 text-primary" aria-hidden />
-              <span className="text-sm font-medium">{t("header.region")}</span>
-            </span>
-          }
-        />
-        <div className="mx-1 h-6 w-px bg-border" />
-      </div>
-
-      {/* Desktop search. On mobile, route planning owns the primary search action. */}
-      <div className="relative hidden min-w-0 max-w-xl flex-1 lg:block">
-        <Search
-          className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-text-muted"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 150)}
-          placeholder={t("header.search")}
-          aria-label={t("header.search")}
-          className="h-11 w-full rounded-full border border-border bg-surface pr-14 pl-9 text-sm text-foreground transition-all duration-300 placeholder:text-text-muted focus:border-primary/40 focus:bg-surface-hover focus:shadow-md focus:outline-none"
-        />
-        <kbd
-          aria-hidden
-          className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded border border-border bg-surface-elevated px-1.5 py-0.5 text-[10px] text-text-muted"
-        >
-          Cmd K
-        </kbd>
-        {focused && query.trim().length >= 2 ? (
-          <ul className="glass-strong absolute top-full left-0 z-50 mt-1 w-full overflow-hidden rounded-xl shadow-2xl">
-            {matches.length === 0 ? (
-              <li className="flex items-center gap-2 px-3 py-3 text-sm text-text-muted">
-                <SearchX className="size-4" aria-hidden /> No results for &ldquo;{query}&rdquo;
-              </li>
-            ) : (
-              matches.map((m) => (
-                <li key={m.id}>
-                  <button
-                    type="button"
-                    className="flex min-h-11 w-full cursor-pointer items-center gap-2.5 px-3 py-2.5 text-left text-sm text-foreground transition-colors duration-100 hover:bg-surface-hover"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      setQuery(m.label);
-                      setFocused(false);
-                    }}
-                  >
-                    <MapPin className="size-3.5 text-primary" aria-hidden />
-                    <span className="flex-1">{m.label}</span>
-                    <span className="text-xs text-text-muted">{m.hint}</span>
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
-        ) : null}
-      </div>
-
-      <div className="flex-1" />
-
-      <NotificationsBell />
-
-      <div className="hidden items-center gap-2 lg:flex">
-        <button
-          type="button"
-          onClick={() => setLang(lang === "en" ? "hi" : "en")}
-          aria-label={lang === "en" ? "Switch language to Hindi" : "Switch language to English"}
-          title={lang === "en" ? "Hindi" : "English"}
-          className="flex min-h-11 cursor-pointer items-center gap-1 rounded-xl px-2 text-xs font-semibold text-text-secondary transition-colors duration-150 hover:bg-surface-hover hover:text-foreground"
-        >
-          <Languages className="size-4" aria-hidden />
-          {lang === "en" ? "HI" : "EN"}
-        </button>
-        <ThemeToggle />
-      </div>
-
-      {/* Profile is pseudonymous: no fabricated user identity. */}
-      <Link
-        href="/profile"
-        aria-label="Profile: this device, pseudonymous"
-        className="flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-2.5 rounded-xl px-1 transition-colors duration-150 hover:bg-surface-hover lg:min-w-0 lg:justify-start lg:px-2"
-      >
-        <span className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-accent/20 text-primary ring-2 ring-primary/20">
-          <UserRound className="size-4" aria-hidden />
-        </span>
-        <span className="hidden text-left lg:block">
-          <span className="flex items-center gap-1 text-sm font-medium text-foreground">
-            This device
-          </span>
-          <span className="block text-[10px] text-text-muted">Pseudonymous</span>
-        </span>
-        <ChevronDown className="hidden size-3.5 text-text-muted lg:block" aria-hidden />
-      </Link>
     </header>
   );
 }
